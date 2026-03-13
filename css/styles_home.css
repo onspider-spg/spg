@@ -1,5 +1,5 @@
-/* Version 1.0 | 13 MAR 2026 | Siam Palette Group */
-/* SPG App — Home Module | IBM Plex Sans Thai */
+/* Version 1.0.1 | 13 MAR 2026 | Siam Palette Group */
+/* SPG App — Home Module | System Font (same as Finance) */
 
 /* ═══ DESIGN TOKENS ═══ */
 :root {
@@ -63,7 +63,7 @@
 html, body {
   background: var(--bg);
   color: var(--t1);
-  font-family: 'IBM Plex Sans Thai', -apple-system, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
   font-size: var(--fs-body);
   line-height: 1.5;
   height: 100vh; height: 100dvh;
