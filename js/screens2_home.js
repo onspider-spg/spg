@@ -1,5 +1,5 @@
 /**
- * Version 1.0 | 13 MAR 2026 | Siam Palette Group
+ * Version 1.0.2 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens2_home.js — Admin Shells (S9–S12)
@@ -19,7 +19,7 @@ function shell(inner) {
       <div class="hamburger" onclick="App.openSidebar()">☰</div>
       <div class="topbar-logo" onclick="App.go('dashboard')">SPG Home</div>
       <div class="topbar-right">
-        <div class="topbar-user"><div class="topbar-avatar">${esc(initial)}</div><span class="hide-m">${esc(name)}</span></div>
+        <div class="topbar-user" onclick="App.showProfilePopup()" style="cursor:pointer"><div class="topbar-avatar">${esc(initial)}</div><span class="hide-m">${esc(name)}</span></div>
       </div>
     </div>
     <div class="shell-body">
@@ -84,7 +84,7 @@ function renderAdmin(p) {
       : '';
 
   const r = shell(`${toolbar(title, actions)}<div class="content">${content}</div>`);
-  setTimeout(() => App.buildSidebar(), 30);
+
   return r;
 }
 
@@ -124,7 +124,7 @@ function renderMaster(p) {
     : `<button class="btn btn-primary btn-sm">+ Add ${title.slice(0, -1)}</button>`;
 
   const r = shell(`${toolbar(title, actions)}<div class="content">${content}</div>`);
-  setTimeout(() => App.buildSidebar(), 30);
+
   return r;
 }
 
@@ -140,7 +140,7 @@ function renderAccountDetail(p) {
         <div style="text-align:center;padding:30px;color:var(--t3)">Account detail will load here</div>
       </div>
     </div>`);
-  setTimeout(() => App.buildSidebar(), 30);
+
   return r;
 }
 
@@ -168,7 +168,7 @@ function renderAcctCreate() {
         </div>
       </div>
     </div>`);
-  setTimeout(() => App.buildSidebar(), 30);
+
   return r;
 }
 
@@ -199,7 +199,7 @@ function renderAudit() {
         <div class="empty-sub">Records are not loaded until requested</div>
       </div>
     </div>`);
-  setTimeout(() => App.buildSidebar(), 30);
+
   return r;
 }
 

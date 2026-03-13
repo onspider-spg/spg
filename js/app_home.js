@@ -1,5 +1,5 @@
 /**
- * Version 1.0.1 | 13 MAR 2026 | Siam Palette Group
+ * Version 1.0.2 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * app_home.js — Router + State + Sidebar + Utilities
@@ -93,7 +93,14 @@ const App = (() => {
     // Render
     appEl().innerHTML = def.render(params);
 
-    // Post-render
+    // Build sidebar for authenticated pages (has <nav class="sidebar"> in DOM)
+    const sidebarEl = appEl().querySelector('.sidebar');
+    if (sidebarEl) {
+      buildSidebar();
+      setupFlyout();
+    }
+
+    // Post-render data loading
     if (def.onLoad) setTimeout(() => def.onLoad(params), 30);
 
     // Scroll reset
@@ -103,9 +110,6 @@ const App = (() => {
 
     // URL hash
     history.replaceState({ route, params }, '', buildHash(route, params));
-
-    // Setup sidebar flyout (desktop)
-    setupFlyout();
   }
 
   function updateHash(route, params = {}) {
@@ -159,6 +163,25 @@ const App = (() => {
   }
   function closeDialog() {
     document.getElementById('dialog-root').innerHTML = '';
+  }
+
+  // ═══ PROFILE POPUP (from topbar avatar) ═══
+  function showProfilePopup() {
+    const s = API.getSession();
+    if (!s) return;
+    const initial = (s.display_name || s.display_label || '?').charAt(0).toUpperCase();
+    showDialog(`<div class="popup-sheet" style="width:300px">
+      <div class="popup-header"><div class="popup-title">Profile</div><button class="popup-close" onclick="App.closeDialog()">✕</button></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div class="topbar-avatar" style="width:40px;height:40px;font-size:16px">${esc(initial)}</div>
+        <div><div style="font-size:14px;font-weight:700">${esc(s.display_name || s.display_label)}</div>
+        <div style="font-size:11px;color:var(--t3)">${esc(s.tier_id)} · ${esc(s.store_id || 'HQ')}</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="btn btn-primary btn-full" onclick="App.closeDialog();App.go('profile')">View Full Profile</button>
+        <button class="btn btn-outline btn-full" style="color:var(--red);border-color:var(--red)" onclick="App.closeDialog();Screens.doLogout()">Log out</button>
+      </div>
+    </div>`);
   }
 
   // ═══ ESCAPE HTML ═══
@@ -416,7 +439,7 @@ const App = (() => {
 
   return {
     S, go, updateHash, toast, showLoader, hideLoader,
-    showDialog, closeDialog, esc,
+    showDialog, closeDialog, showProfilePopup, esc,
     openSidebar, closeSidebar, toggleSidebar,
     buildSidebar, loadBundle,
   };

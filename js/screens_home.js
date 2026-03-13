@@ -1,5 +1,5 @@
 /**
- * Version 1.0 | 13 MAR 2026 | Siam Palette Group
+ * Version 1.0.2 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens_home.js — S1 Login, S3 Staff, S4 New Staff,
@@ -33,7 +33,7 @@ function topbar() {
     <div class="hamburger" onclick="App.openSidebar()">☰</div>
     <div class="topbar-logo" onclick="App.go('dashboard')">SPG Home</div>
     <div class="topbar-right">
-      <div class="topbar-user">
+      <div class="topbar-user" onclick="App.showProfilePopup()" style="cursor:pointer">
         <div class="topbar-avatar">${esc(initial)}</div>
         <span class="hide-m">${esc(name)}</span>
       </div>
