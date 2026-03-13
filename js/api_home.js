@@ -1,9 +1,9 @@
 /**
- * Version 1.0.3 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.1 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * api_home.js — API Client + Token Manager
- * Edge Function: /functions/v1/home (standalone)
+ * v1.1: add admin endpoints (accounts, permissions, tier access, requests)
  * ═══════════════════════════════════════════
  */
 
@@ -42,6 +42,7 @@ const API = (() => {
 
   return {
     getToken, setToken, clearToken, saveSession, getSession, clearSession, saveAccountTemp, getAccountTemp,
+    // Auth
     login: (username, password) => post('login', { username, password }),
     register: (data) => post('register', data),
     getUsers: (account_id) => post('get_users', { account_id }),
@@ -49,12 +50,24 @@ const API = (() => {
     setUserPin: (account_id, user_id, new_pin) => post('set_user_pin', { account_id, user_id, new_pin }),
     createUser: (data) => post('create_user', data),
     logout: () => post('logout', tb()),
+    // Dashboard
     initBundle: () => post('init_bundle', tb()),
+    // Profile
     getProfile: () => post('get_profile', tb()),
     updateProfile: (data) => post('update_profile', tb(data)),
     changePassword: (data) => post('change_password', tb(data)),
     changePin: (data) => post('change_pin', tb(data)),
+    // Public
     getStores: () => post('get_stores', {}),
     getDepartments: () => post('get_departments', {}),
+    // Admin
+    adminGetAccounts: (f = {}) => post('admin_get_accounts', tb(f)),
+    adminGetPermissions: () => post('admin_get_permissions', tb()),
+    adminUpdatePermission: (module_id, tier_id, access_level) => post('admin_update_permission', tb({ module_id, tier_id, access_level })),
+    adminGetRegistrations: (f = {}) => post('admin_get_registrations', tb(f)),
+    adminReviewRegistration: (data) => post('admin_review_registration', tb(data)),
+    adminGetModuleAccess: () => post('admin_get_module_access', tb()),
+    adminSetModuleAccess: (account_id, module_id, module_tier) => post('admin_set_module_access', tb({ account_id, module_id, module_tier })),
+    adminRemoveModuleAccess: (account_id, module_id) => post('admin_remove_module_access', tb({ account_id, module_id })),
   };
 })();

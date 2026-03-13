@@ -1,5 +1,5 @@
 /**
- * Version 1.0.2 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.1 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens2_home.js — Admin Shells (S9–S12)
@@ -41,50 +41,14 @@ function renderAdmin(p) {
   const titles = { accounts: 'Accounts', permissions: 'Permissions', tieraccess: 'Tier Access Overrides', requests: 'Registration Requests' };
   const title = titles[tab] || 'Admin';
 
-  let content = '';
-  if (tab === 'accounts') {
-    content = `
-      <div class="card" style="padding:10px 16px">
-        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-          <div><div class="fl-label">Status</div><select class="fl"><option>All</option><option>Approved</option><option>Suspended</option></select></div>
-          <div><div class="fl-label">Store</div><select class="fl"><option>All</option></select></div>
-          <div><div class="fl-label">Search</div><input class="fl" placeholder="Name / Email" style="width:150px"></div>
-        </div>
-      </div>
-      <div class="card" style="padding:0;overflow:hidden">
-        <table class="tbl"><thead><tr><th>Display Label</th><th class="hide-m">Type</th><th class="hide-m">Store</th><th>Tier</th><th>Status</th></tr></thead>
-        <tbody><tr><td colspan="5" style="text-align:center;padding:30px;color:var(--t3)">Account data will load here</td></tr></tbody></table>
-      </div>`;
-  } else if (tab === 'permissions') {
-    content = `
-      <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Click any cell to change access level. Click Save when done.</div>
-      <div class="card" style="padding:0;overflow:hidden">
-        <table class="tbl"><thead><tr><th>Tier</th><th>BC Order</th><th>Sale Daily</th><th>Finance</th><th>Home</th></tr></thead>
-        <tbody><tr><td colspan="5" style="text-align:center;padding:30px;color:var(--t3)">Permission data will load here</td></tr></tbody></table>
-      </div>`;
-  } else if (tab === 'tieraccess') {
-    content = `
-      <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Per-account module tier overrides. Blank (—) = uses global tier.</div>
-      <div class="card" style="padding:0;overflow:hidden">
-        <table class="tbl"><thead><tr><th>Account</th><th>Global Tier</th><th>BC Order</th><th>Sale Daily</th><th>Finance</th></tr></thead>
-        <tbody><tr><td colspan="5" style="text-align:center;padding:30px;color:var(--t3)">Tier access data will load here</td></tr></tbody></table>
-      </div>`;
-  } else if (tab === 'requests') {
-    content = `
-      <div class="card" style="padding:0;overflow:hidden">
-        <table class="tbl"><thead><tr><th>Name</th><th>Email</th><th class="hide-m">Store</th><th>Date</th><th>Status</th></tr></thead>
-        <tbody><tr><td colspan="5" style="text-align:center;padding:30px;color:var(--t3)">Request data will load here</td></tr></tbody></table>
-      </div>`;
-  }
-
   const actions = tab === 'accounts'
     ? `<button class="btn btn-primary btn-sm" onclick="App.go('acct-create')">+ Create Account</button>`
     : (tab === 'permissions' || tab === 'tieraccess')
-      ? `<button class="btn btn-primary btn-sm">Save Changes</button>`
+      ? `<button class="btn btn-primary btn-sm" onclick="Admin.saveAdminTab('${tab}')">Save Changes</button>`
       : '';
 
-  const r = shell(`${toolbar(title, actions)}<div class="content">${content}</div>`);
-
+  const r = shell(`${toolbar(title, actions)}<div class="content"><div id="admin-content"><div class="skeleton" style="height:200px;margin-top:8px"></div></div></div>`);
+  setTimeout(() => Admin.loadAdminTab(tab), 30);
   return r;
 }
 
