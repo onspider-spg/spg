@@ -1,9 +1,8 @@
 /**
- * Version 1.2 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.3 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
- * SPG App — Home Module
- * api_home.js — API Client + Token Manager
- * v1.2: add master data endpoints (modules, stores, depts)
+ * SPG App — Home Module — api_home.js
+ * v1.3: add account detail, create account, audit trail
  * ═══════════════════════════════════════════
  */
 
@@ -56,6 +55,8 @@ const API = (() => {
     getDepartments: () => post('get_departments', {}),
     // Admin
     adminGetAccounts: (f = {}) => post('admin_get_accounts', tb(f)),
+    adminCreateAccount: (data) => post('admin_create_account', tb(data)),
+    adminUpdateAccount: (data) => post('admin_update_account', tb(data)),
     adminGetPermissions: () => post('admin_get_permissions', tb()),
     adminUpdatePermission: (module_id, tier_id, access_level) => post('admin_update_permission', tb({ module_id, tier_id, access_level })),
     adminGetRegistrations: (f = {}) => post('admin_get_registrations', tb(f)),
@@ -63,6 +64,9 @@ const API = (() => {
     adminGetModuleAccess: () => post('admin_get_module_access', tb()),
     adminSetModuleAccess: (account_id, module_id, module_tier) => post('admin_set_module_access', tb({ account_id, module_id, module_tier })),
     adminRemoveModuleAccess: (account_id, module_id) => post('admin_remove_module_access', tb({ account_id, module_id })),
+    adminGetUsers: (account_id) => post('admin_get_users', tb({ account_id })),
+    adminUpdateUser: (data) => post('admin_update_user', tb(data)),
+    adminGetAuditLog: (f = {}) => post('admin_get_audit_log', tb(f)),
     // Master Data
     adminGetAllModules: () => post('admin_get_all_modules', tb()),
     adminUpdateModule: (data) => post('admin_update_module', tb(data)),

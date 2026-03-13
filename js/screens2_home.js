@@ -1,5 +1,5 @@
 /**
- * Version 1.2 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.3 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens2_home.js — Admin Shells (S9–S12)
@@ -72,76 +72,37 @@ function renderMaster(p) {
 
 
 // ════════════════════════════════
-// S10: ACCOUNT DETAIL (shell)
+// S10: ACCOUNT DETAIL
 // ════════════════════════════════
 function renderAccountDetail(p) {
   const r = shell(`
     ${toolbar('Account Detail', `<button class="btn btn-outline btn-sm" onclick="App.go('admin',{tab:'accounts'})">← Accounts</button>`)}
-    <div class="content">
-      <div class="card" style="max-width:800px">
-        <div style="text-align:center;padding:30px;color:var(--t3)">Account detail will load here</div>
-      </div>
-    </div>`);
-
+    <div class="content"><div id="acct-detail-content"><div class="skeleton" style="height:300px;margin-top:8px"></div></div></div>`);
+  setTimeout(() => Screens3.loadAccountDetail(p?.account_id), 30);
   return r;
 }
 
 
 // ════════════════════════════════
-// S10b: CREATE ACCOUNT (shell)
+// S10b: CREATE ACCOUNT
 // ════════════════════════════════
 function renderAcctCreate() {
   const r = shell(`
     ${toolbar('Create Account', `<button class="btn btn-outline btn-sm" onclick="App.go('admin',{tab:'accounts'})">← Accounts</button>`)}
-    <div class="content">
-      <div class="card" style="max-width:500px">
-        <div class="fg"><label class="lb">Username *</label><input class="inp" placeholder="username or email"></div>
-        <div class="fg"><label class="lb">Password * (min 8 characters)</label><input class="inp" type="password" placeholder="••••••••"></div>
-        <div class="fg"><label class="lb">Display Label *</label><input class="inp" placeholder="e.g. Mango Coco Mac"></div>
-        <div class="fg"><label class="lb">Account Type *</label><select class="inp"><option value="individual">Individual</option><option value="group">Group</option></select></div>
-        <div class="fg"><label class="lb">Tier *</label><select class="inp"><option>T1</option><option>T2</option><option>T3</option><option>T4</option><option selected>T5</option><option>T6</option><option>T7</option></select></div>
-        <div style="display:flex;gap:8px">
-          <div class="fg" style="flex:1"><label class="lb">Store</label><select class="inp"><option value="">-- ไม่ระบุ --</option></select></div>
-          <div class="fg" style="flex:1"><label class="lb">Department</label><select class="inp"><option value="">-- ไม่ระบุ --</option></select></div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:var(--sp-md)">
-          <button class="btn btn-outline" onclick="App.go('admin',{tab:'accounts'})">Cancel</button>
-          <button class="btn btn-primary" onclick="App.toast('Create Account — coming soon','info')">Create Account</button>
-        </div>
-      </div>
-    </div>`);
-
+    <div class="content"><div id="acct-create-content"><div class="skeleton" style="height:300px;margin-top:8px"></div></div></div>`);
+  setTimeout(() => Screens3.renderCreateAccountForm(), 30);
   return r;
 }
 
 
 // ════════════════════════════════
-// S12: AUDIT TRAIL (on-demand — 2 states)
+// S12: AUDIT TRAIL
 // ════════════════════════════════
 function renderAudit() {
-  const today = new Date().toISOString().split('T')[0];
-  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-
   const r = shell(`
     ${toolbar('Audit Trail')}
-    <div class="content">
-      <div class="card" style="max-width:900px">
-        <div style="font-size:11px;color:var(--t3);margin-bottom:12px">Select a date range and click Load to view audit records.</div>
-        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-          <div><div class="fl-label">Date from</div><input class="fl" type="date" value="${weekAgo}" style="width:140px"></div>
-          <div><div class="fl-label">Date to</div><input class="fl" type="date" value="${today}" style="width:140px"></div>
-          <div><div class="fl-label">User</div><select class="fl" style="width:120px"><option>All Users</option></select></div>
-          <div><div class="fl-label">Action</div><select class="fl" style="width:120px"><option>All Actions</option></select></div>
-          <button class="btn btn-primary btn-sm" onclick="App.toast('Audit load — coming soon','info')">Load</button>
-        </div>
-      </div>
-      <div class="empty-state">
-        <div class="empty-icon">☰</div>
-        <div class="empty-text">Select date range and click Load</div>
-        <div class="empty-sub">Records are not loaded until requested</div>
-      </div>
-    </div>`);
-
+    <div class="content"><div id="audit-content"></div></div>`);
+  setTimeout(() => Screens3.renderAuditUI(), 30);
   return r;
 }
 
