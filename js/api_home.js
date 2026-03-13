@@ -4,7 +4,6 @@
  * SPG App — Home Module
  * api_home.js — API Client + Token Manager
  * Edge Function: /functions/v1/home (standalone)
- * v1.0.3: add updateProfile, changePassword, changePin
  * ═══════════════════════════════════════════
  */
 
