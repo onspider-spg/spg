@@ -1,5 +1,5 @@
 /**
- * Version 1.0.4 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.0.5 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * app_home.js — Router + State + Sidebar + Utilities
@@ -96,8 +96,7 @@ const App = (() => {
     // Build sidebar for authenticated pages (has <nav class="sidebar"> in DOM)
     const sidebarEl = appEl().querySelector('.sidebar');
     if (sidebarEl) {
-      buildSidebar();
-      setupFlyout();
+      buildSidebar(); // setupFlyout() called inside
     }
 
     // Post-render data loading
@@ -261,6 +260,9 @@ const App = (() => {
 
     // Also build mobile sidebar
     buildMobileSidebar(s, tierLevel, isAdmin);
+
+    // Rebind flyout listeners every rebuild
+    setupFlyout();
   }
 
   function sdItem(route, icon, label) {
@@ -282,7 +284,7 @@ const App = (() => {
     return `<div class="sd-flyout-item${active}" onclick="App.go('${route}',{tab:'${tab}'})">${label}</div>`;
   }
 
-  // ─── FLYOUT HOVER (JS position:fixed) ───
+  // ─── FLYOUT: hover + click support ───
   function setupFlyout() {
     document.querySelectorAll('.sd-group').forEach(sg => {
       const head = sg.querySelector('.sd-group-head');
@@ -290,22 +292,37 @@ const App = (() => {
       if (!head || !sub) return;
       let timer = null;
 
-      sg.addEventListener('mouseenter', () => {
+      function openFlyout() {
         clearTimeout(timer);
         document.querySelectorAll('.sd-flyout.show').forEach(f => { if (f !== sub) f.classList.remove('show'); });
         const rect = head.getBoundingClientRect();
         sub.style.top = rect.top + 'px';
         sub.style.left = rect.right + 'px';
         sub.classList.add('show');
-      });
-      sg.addEventListener('mouseleave', () => {
-        timer = setTimeout(() => sub.classList.remove('show'), 100);
-      });
+      }
+      function closeFlyout() { timer = setTimeout(() => sub.classList.remove('show'), 150); }
+
+      // Hover (desktop mouse)
+      sg.addEventListener('mouseenter', openFlyout);
+      sg.addEventListener('mouseleave', closeFlyout);
       sub.addEventListener('mouseenter', () => clearTimeout(timer));
-      sub.addEventListener('mouseleave', () => {
-        timer = setTimeout(() => sub.classList.remove('show'), 100);
+      sub.addEventListener('mouseleave', closeFlyout);
+
+      // Click (trackpad / touch / click)
+      head.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (sub.classList.contains('show')) { sub.classList.remove('show'); }
+        else { openFlyout(); }
       });
     });
+
+    // Close all flyouts when clicking outside (add once)
+    if (!setupFlyout._bound) {
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.sd-flyout.show').forEach(f => f.classList.remove('show'));
+      });
+      setupFlyout._bound = true;
+    }
   }
 
   function toggleSidebar() {
