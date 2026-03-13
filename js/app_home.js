@@ -1,5 +1,5 @@
 /**
- * Version 1.0 | 13 MAR 2026 | Siam Palette Group
+ * Version 1.0.1 | 13 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * app_home.js — Router + State + Sidebar + Utilities
@@ -411,12 +411,8 @@ const App = (() => {
     }
   }
 
-  // Boot
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  // Boot — DOMContentLoaded fires after ALL defer scripts finish
+  document.addEventListener('DOMContentLoaded', init);
 
   return {
     S, go, updateHash, toast, showLoader, hideLoader,
