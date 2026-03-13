@@ -1,5 +1,5 @@
 /**
- * Version 1.0.2 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.0.4 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * app_home.js — Router + State + Sidebar + Utilities
@@ -210,7 +210,11 @@ const App = (() => {
     html += sdItem('dashboard', '◇', 'Dashboard');
     html += '<div style="height:20px"></div>';
 
-    // Modules group
+    // Profile (person icon, above Modules, no space between)
+    const personIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>';
+    html += sdItem('profile', personIcon, 'Profile');
+
+    // Modules group (no space before — directly after Profile)
     let modItems = '';
     if (S.modules) {
       S.modules.forEach(m => {
@@ -243,9 +247,6 @@ const App = (() => {
         `<div class="sd-flyout-item" onclick="App.go('audit')">Audit Trail</div>`
       );
     }
-
-    html += '<div style="height:12px"></div>';
-    html += sdItem('profile', '○', 'Profile');
 
     // Footer
     html += `<div class="sd-footer">
@@ -326,6 +327,8 @@ const App = (() => {
 
     html += mobItem('dashboard', '◇', 'Dashboard');
     html += '<div style="height:8px"></div>';
+    const mobPersonIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>';
+    html += mobItem('profile', mobPersonIcon, 'Profile');
     html += '<div class="mob-sidebar-section">Modules</div>';
     if (S.modules) {
       S.modules.forEach(m => {
@@ -350,7 +353,6 @@ const App = (() => {
     }
 
     html += '<div style="height:8px"></div>';
-    html += mobItem('profile', '○', 'Profile');
     html += mobItem('audit', '☰', 'Audit Trail');
 
     html += `<div class="mob-sd-footer"><a href="#" style="font-size:10px;color:var(--red);text-decoration:none" onclick="Screens.doLogout();return false">→ Log out</a></div>`;
