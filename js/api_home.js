@@ -1,9 +1,10 @@
 /**
- * Version 1.0 | 13 MAR 2026 | Siam Palette Group
+ * Version 1.0.3 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * api_home.js — API Client + Token Manager
  * Edge Function: /functions/v1/home (standalone)
+ * v1.0.3: add updateProfile, changePassword, changePin
  * ═══════════════════════════════════════════
  */
 
@@ -51,6 +52,9 @@ const API = (() => {
     logout: () => post('logout', tb()),
     initBundle: () => post('init_bundle', tb()),
     getProfile: () => post('get_profile', tb()),
+    updateProfile: (data) => post('update_profile', tb(data)),
+    changePassword: (data) => post('change_password', tb(data)),
+    changePin: (data) => post('change_pin', tb(data)),
     getStores: () => post('get_stores', {}),
     getDepartments: () => post('get_departments', {}),
   };

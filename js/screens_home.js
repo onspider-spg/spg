@@ -1,5 +1,5 @@
 /**
- * Version 1.0.2 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.0.3 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens_home.js — S1 Login, S3 Staff, S4 New Staff,
@@ -463,7 +463,7 @@ function renderProfileCard(d) {
 }
 
 
-// ═══ PROFILE POPUPS (shell — UI only) ═══
+// ═══ PROFILE POPUPS (working — linked to DB) ═══
 function showEditProfile() {
   const d = App.S.profile;
   if (!d) return;
@@ -473,26 +473,89 @@ function showEditProfile() {
     <div class="fg"><label class="lb">Full Name *</label><input class="inp" value="${esc(d.full_name || '')}" readonly class="inp-readonly"></div>
     <div class="fg"><label class="lb">Phone</label><input class="inp" id="pf-phone" value="${esc(d.phone || '')}"></div>
     <div class="inp-hint">Email, Store, Tier cannot be changed here.</div>
-    <div class="popup-actions"><button class="btn btn-outline" onclick="App.closeDialog()">Cancel</button><button class="btn btn-primary" onclick="App.closeDialog();App.toast('Edit Profile — coming soon','info')">Save</button></div>
+    <div class="error-msg" id="pf-edit-error"></div>
+    <div class="popup-actions"><button class="btn btn-outline" onclick="App.closeDialog()">Cancel</button><button class="btn btn-primary" id="btn-pf-save" onclick="Screens.doSaveProfile()">Save</button></div>
   </div>`);
+}
+
+async function doSaveProfile() {
+  const display_name = document.getElementById('pf-nick')?.value.trim();
+  const phone = document.getElementById('pf-phone')?.value.trim();
+  if (!display_name) { showError('pf-edit-error', 'Display name is required'); return; }
+  const btn = document.getElementById('btn-pf-save');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    await API.updateProfile({ display_name, phone });
+    App.closeDialog();
+    App.toast('Profile updated', 'success');
+    // Update memory directly
+    App.S.profile.display_name = display_name;
+    App.S.profile.phone = phone;
+    renderProfileCard(App.S.profile);
+    // Update session in localStorage too
+    const s = API.getSession();
+    if (s) { s.display_name = display_name; localStorage.setItem('spg_session', JSON.stringify(s)); }
+  } catch (e) {
+    showError('pf-edit-error', e.message || 'Update failed');
+    btn.disabled = false; btn.textContent = 'Save';
+  }
 }
 
 function showChangePasswordPopup() {
   App.showDialog(`<div class="popup-sheet">
     <div class="popup-header"><div class="popup-title">Change Password</div><button class="popup-close" onclick="App.closeDialog()">✕</button></div>
-    <div class="fg"><label class="lb">New Password * (min 8 characters)</label><input class="inp" type="password" placeholder="••••••••"></div>
-    <div class="fg"><label class="lb">Confirm New Password *</label><input class="inp" type="password" placeholder="••••••••"></div>
-    <div class="popup-actions"><button class="btn btn-outline" onclick="App.closeDialog()">Cancel</button><button class="btn btn-primary" onclick="App.closeDialog();App.toast('Change Password — coming soon','info')">Change Password</button></div>
+    <div class="fg"><label class="lb">Current Password *</label><input class="inp" id="pw-current" type="password" placeholder="••••••••"></div>
+    <div class="fg"><label class="lb">New Password * (min 8 characters)</label><input class="inp" id="pw-new" type="password" placeholder="••••••••"></div>
+    <div class="fg"><label class="lb">Confirm New Password *</label><input class="inp" id="pw-confirm" type="password" placeholder="••••••••"></div>
+    <div class="error-msg" id="pw-error"></div>
+    <div class="popup-actions"><button class="btn btn-outline" onclick="App.closeDialog()">Cancel</button><button class="btn btn-primary" id="btn-pw-save" onclick="Screens.doChangePassword()">Change Password</button></div>
   </div>`);
+}
+
+async function doChangePassword() {
+  const current_password = document.getElementById('pw-current')?.value;
+  const new_password = document.getElementById('pw-new')?.value;
+  const confirm_password = document.getElementById('pw-confirm')?.value;
+  if (!current_password) { showError('pw-error', 'กรุณากรอกรหัสผ่านปัจจุบัน'); return; }
+  if (!new_password || new_password.length < 8) { showError('pw-error', 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัว'); return; }
+  if (new_password !== confirm_password) { showError('pw-error', 'Passwords do not match'); return; }
+  const btn = document.getElementById('btn-pw-save');
+  btn.disabled = true; btn.textContent = 'Changing...';
+  try {
+    await API.changePassword({ current_password, new_password });
+    App.closeDialog();
+    App.toast('Password changed', 'success');
+  } catch (e) {
+    showError('pw-error', e.message || 'Failed to change password');
+    btn.disabled = false; btn.textContent = 'Change Password';
+  }
 }
 
 function showChangePinPopup() {
   App.showDialog(`<div class="popup-sheet">
     <div class="popup-header"><div class="popup-title">Change PIN</div><button class="popup-close" onclick="App.closeDialog()">✕</button></div>
-    <div class="fg"><label class="lb">New PIN (6 digits) *</label><input class="inp" type="password" placeholder="••••••" maxlength="6"></div>
-    <div class="fg"><label class="lb">Confirm New PIN *</label><input class="inp" type="password" placeholder="••••••" maxlength="6"></div>
-    <div class="popup-actions"><button class="btn btn-outline" onclick="App.closeDialog()">Cancel</button><button class="btn btn-primary" onclick="App.closeDialog();App.toast('Change PIN — coming soon','info')">Change PIN</button></div>
+    <div class="fg"><label class="lb">New PIN (6 digits) *</label><input class="inp" id="pin-new" type="password" placeholder="••••••" maxlength="6" inputmode="numeric"></div>
+    <div class="fg"><label class="lb">Confirm New PIN *</label><input class="inp" id="pin-confirm" type="password" placeholder="••••••" maxlength="6" inputmode="numeric"></div>
+    <div class="error-msg" id="pin-chg-error"></div>
+    <div class="popup-actions"><button class="btn btn-outline" onclick="App.closeDialog()">Cancel</button><button class="btn btn-primary" id="btn-pin-save" onclick="Screens.doChangePin()">Change PIN</button></div>
   </div>`);
+}
+
+async function doChangePin() {
+  const new_pin = document.getElementById('pin-new')?.value.trim();
+  const confirm_pin = document.getElementById('pin-confirm')?.value.trim();
+  if (!new_pin || new_pin.length !== 6 || !/^\d{6}$/.test(new_pin)) { showError('pin-chg-error', 'PIN ต้องเป็นตัวเลข 6 หลัก'); return; }
+  if (new_pin !== confirm_pin) { showError('pin-chg-error', 'PIN ไม่ตรงกัน'); return; }
+  const btn = document.getElementById('btn-pin-save');
+  btn.disabled = true; btn.textContent = 'Changing...';
+  try {
+    await API.changePin({ new_pin });
+    App.closeDialog();
+    App.toast('PIN changed', 'success');
+  } catch (e) {
+    showError('pin-chg-error', e.message || 'Failed to change PIN');
+    btn.disabled = false; btn.textContent = 'Change PIN';
+  }
 }
 
 
@@ -535,7 +598,9 @@ return {
   renderNewStaff, doCreateStaff,
   renderDashboard, fillDashboard, launchModule,
   renderProfile, loadProfile,
-  showEditProfile, showChangePasswordPopup, showChangePinPopup,
+  showEditProfile, doSaveProfile,
+  showChangePasswordPopup, doChangePassword,
+  showChangePinPopup, doChangePin,
   doLogout,
 };
 
