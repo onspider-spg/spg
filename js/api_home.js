@@ -1,9 +1,9 @@
 /**
- * Version 1.1 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.2 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * api_home.js — API Client + Token Manager
- * v1.1: add admin endpoints (accounts, permissions, tier access, requests)
+ * v1.2: add master data endpoints (modules, stores, depts)
  * ═══════════════════════════════════════════
  */
 
@@ -23,18 +23,13 @@ const API = (() => {
   function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
   function setToken(token) { if (token) localStorage.setItem(TOKEN_KEY, token); }
   function clearToken() { localStorage.removeItem(TOKEN_KEY); }
-
   function saveSession(data) {
     const s = { token: data.session_id, account_id: data.account_id, account_type: data.account_type, display_label: data.display_label, tier_id: data.tier_id, tier_name: data.tier_name, store_id: data.store_id, dept_id: data.dept_id, user_id: data.user_id || '', display_name: data.display_name || '', full_name: data.full_name || '', expires_at: data.expires_at };
     localStorage.setItem(SESSION_KEY, JSON.stringify(s));
     setToken(data.session_id);
     return s;
   }
-
-  function getSession() {
-    try { const raw = localStorage.getItem(SESSION_KEY); if (!raw) return null; const data = JSON.parse(raw); if (data.expires_at && new Date(data.expires_at) < new Date()) { clearSession(); return null; } return data; } catch { return null; }
-  }
-
+  function getSession() { try { const raw = localStorage.getItem(SESSION_KEY); if (!raw) return null; const data = JSON.parse(raw); if (data.expires_at && new Date(data.expires_at) < new Date()) { clearSession(); return null; } return data; } catch { return null; } }
   function clearSession() { localStorage.removeItem(SESSION_KEY); localStorage.removeItem(ACCOUNT_KEY); clearToken(); }
   function saveAccountTemp(data) { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(data)); }
   function getAccountTemp() { try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY)); } catch { return null; } }
@@ -50,9 +45,8 @@ const API = (() => {
     setUserPin: (account_id, user_id, new_pin) => post('set_user_pin', { account_id, user_id, new_pin }),
     createUser: (data) => post('create_user', data),
     logout: () => post('logout', tb()),
-    // Dashboard
+    // Dashboard + Profile
     initBundle: () => post('init_bundle', tb()),
-    // Profile
     getProfile: () => post('get_profile', tb()),
     updateProfile: (data) => post('update_profile', tb(data)),
     changePassword: (data) => post('change_password', tb(data)),
@@ -69,5 +63,14 @@ const API = (() => {
     adminGetModuleAccess: () => post('admin_get_module_access', tb()),
     adminSetModuleAccess: (account_id, module_id, module_tier) => post('admin_set_module_access', tb({ account_id, module_id, module_tier })),
     adminRemoveModuleAccess: (account_id, module_id) => post('admin_remove_module_access', tb({ account_id, module_id })),
+    // Master Data
+    adminGetAllModules: () => post('admin_get_all_modules', tb()),
+    adminUpdateModule: (data) => post('admin_update_module', tb(data)),
+    adminGetAllStores: () => post('admin_get_all_stores', tb()),
+    adminCreateStore: (data) => post('admin_create_store', tb(data)),
+    adminUpdateStore: (data) => post('admin_update_store', tb(data)),
+    adminGetAllDepts: () => post('admin_get_all_depts', tb()),
+    adminCreateDept: (data) => post('admin_create_dept', tb(data)),
+    adminUpdateDept: (data) => post('admin_update_dept', tb(data)),
   };
 })();

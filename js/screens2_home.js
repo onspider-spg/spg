@@ -1,5 +1,5 @@
 /**
- * Version 1.1 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.2 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens2_home.js — Admin Shells (S9–S12)
@@ -61,34 +61,12 @@ function renderMaster(p) {
   const titles = { modules: 'Modules', stores: 'Stores', depts: 'Departments' };
   const title = titles[tab] || 'Master Data';
 
-  let content = '';
-  if (tab === 'modules') {
-    content = `
-      <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Edit module name and status inline. Click Save when done.</div>
-      <div class="card" style="padding:0;overflow:hidden">
-        <table class="tbl"><thead><tr><th>Module ID</th><th>Name TH</th><th>Name EN</th><th>Status</th><th class="hide-m">URL</th></tr></thead>
-        <tbody><tr><td colspan="5" style="text-align:center;padding:30px;color:var(--t3)">Module data will load here</td></tr></tbody></table>
-      </div>`;
-  } else if (tab === 'stores') {
-    content = `
-      <div class="card" style="padding:0;overflow:hidden">
-        <table class="tbl"><thead><tr><th>Store ID</th><th>Name</th><th class="hide-m">Name TH</th><th>Status</th></tr></thead>
-        <tbody><tr><td colspan="4" style="text-align:center;padding:30px;color:var(--t3)">Store data will load here</td></tr></tbody></table>
-      </div>`;
-  } else if (tab === 'depts') {
-    content = `
-      <div class="card" style="padding:0;overflow:hidden">
-        <table class="tbl"><thead><tr><th>Dept ID</th><th>Name (EN)</th><th class="hide-m">Name (TH)</th><th>Status</th></tr></thead>
-        <tbody><tr><td colspan="4" style="text-align:center;padding:30px;color:var(--t3)">Department data will load here</td></tr></tbody></table>
-      </div>`;
-  }
-
   const actions = tab === 'modules'
-    ? `<button class="btn btn-primary btn-sm">Save Changes</button>`
-    : `<button class="btn btn-primary btn-sm">+ Add ${title.slice(0, -1)}</button>`;
+    ? `<button class="btn btn-primary btn-sm" onclick="Master.saveMasterTab('${tab}')">Save Changes</button>`
+    : `<button class="btn btn-primary btn-sm" onclick="Master.addMasterItem('${tab}')">+ Add ${title.slice(0, -1)}</button>`;
 
-  const r = shell(`${toolbar(title, actions)}<div class="content">${content}</div>`);
-
+  const r = shell(`${toolbar(title, actions)}<div class="content"><div id="master-content"><div class="skeleton" style="height:200px;margin-top:8px"></div></div></div>`);
+  setTimeout(() => Master.loadMasterTab(tab), 30);
   return r;
 }
 
