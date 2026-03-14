@@ -1,9 +1,9 @@
 /**
- * Version 1.5 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.4 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens2_home.js — Admin Shells (S9–S12)
- * v1.5: Permission-gated admin/master actions (super_admin for edit)
+ * v1.4: A1 use App.shell/toolbar (remove duplicate)
  * ═══════════════════════════════════════════
  */
 
@@ -16,11 +16,12 @@ function renderAdmin(p) {
   const tab = p?.tab || 'accounts';
   const titles = { accounts: 'Accounts', permissions: 'Permissions', tieraccess: 'Tier Access Overrides', requests: 'Registration Requests' };
   const title = titles[tab] || 'Admin';
-  const isSA = App.hasHomePerm('super_admin');
 
-  let actions = '';
-  if (tab === 'accounts') actions = `<button class="btn btn-primary btn-sm" onclick="App.go('acct-create')">+ Create Account</button>`;
-  else if ((tab === 'permissions' || tab === 'tieraccess') && isSA) actions = `<button class="btn btn-primary btn-sm" onclick="Admin.saveAdminTab('${tab}')">Save Changes</button>`;
+  const actions = tab === 'accounts'
+    ? `<button class="btn btn-primary btn-sm" onclick="App.go('acct-create')">+ Create Account</button>`
+    : (tab === 'permissions' || tab === 'tieraccess')
+      ? `<button class="btn btn-primary btn-sm" onclick="Admin.saveAdminTab('${tab}')">Save Changes</button>`
+      : '';
 
   const r = App.shell(`${App.toolbar(title, actions)}<div class="content"><div id="admin-content"><div class="skeleton" style="height:200px;margin-top:8px"></div></div></div>`);
   setTimeout(() => Admin.loadAdminTab(tab), 30);
@@ -35,14 +36,10 @@ function renderMaster(p) {
   const tab = p?.tab || 'modules';
   const titles = { modules: 'Modules', stores: 'Stores', depts: 'Departments' };
   const title = titles[tab] || 'Master Data';
-  const isSA = App.hasHomePerm('super_admin');
 
-  let actions = '';
-  if (isSA) {
-    actions = tab === 'modules'
-      ? `<button class="btn btn-primary btn-sm" onclick="Master.saveMasterTab('${tab}')">Save Changes</button>`
-      : `<button class="btn btn-primary btn-sm" onclick="Master.addMasterItem('${tab}')">+ Add ${title.slice(0, -1)}</button>`;
-  }
+  const actions = tab === 'modules'
+    ? `<button class="btn btn-primary btn-sm" onclick="Master.saveMasterTab('${tab}')">Save Changes</button>`
+    : `<button class="btn btn-primary btn-sm" onclick="Master.addMasterItem('${tab}')">+ Add ${title.slice(0, -1)}</button>`;
 
   const r = App.shell(`${App.toolbar(title, actions)}<div class="content"><div id="master-content"><div class="skeleton" style="height:200px;margin-top:8px"></div></div></div>`);
   setTimeout(() => Master.loadMasterTab(tab), 30);

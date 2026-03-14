@@ -1,9 +1,9 @@
 /**
- * Version 1.4 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.3 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * admin_home.js — Admin Functions (Accounts, Permissions, Tier Access, Requests)
- * v1.4: Permission/TierAccess read-only for non-super_admin
+ * v1.3: D1 sortable accounts + requests tables
  * ═══════════════════════════════════════════
  */
 
@@ -105,8 +105,6 @@ function renderPermGrid(ct, data) {
   const mods = data.modules || [];
   const tiers = data.tiers || [];
   const levels = ['no_access', 'view_only', 'edit', 'admin', 'super_admin'];
-  const isSA = App.hasHomePerm('super_admin');
-  const dis = isSA ? '' : ' disabled';
 
   let header = '<th>Tier</th>';
   mods.forEach(m => { header += `<th>${esc(m.module_name_en || m.module_id)}</th>`; });
@@ -121,15 +119,14 @@ function renderPermGrid(ct, data) {
       } else {
         const key = `${m.module_id}_${t.tier_id}`;
         const opts = levels.map(l => `<option value="${l}"${val === l ? ' selected' : ''}>${l.replace('_', ' ')}</option>`).join('');
-        cells += `<td><select class="fl" style="width:100px;font-size:10px;padding:3px 6px" onchange="Admin.markPermDirty('${esc(key)}',this.value)"${dis}>${opts}</select></td>`;
+        cells += `<td><select class="fl" style="width:100px;font-size:10px;padding:3px 6px" onchange="Admin.markPermDirty('${esc(key)}',this.value)">${opts}</select></td>`;
       }
     });
     rows += `<tr>${cells}</tr>`;
   });
 
-  const hint = isSA ? 'Click any cell to change access level. Click Save when done.' : 'View only — requires Super Admin to edit.';
   ct.innerHTML = `
-    <div style="font-size:11px;color:var(--t3);margin-bottom:10px">${hint}</div>
+    <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Click any cell to change access level. Click Save when done.</div>
     <div class="card" style="padding:0;overflow-x:auto">
       <table class="tbl"><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>
     </div>
@@ -190,8 +187,6 @@ function renderTierGrid(ct, data) {
   const mods = data.modules || [];
   const overrides = data.overrides || [];
   const tiers = data.tiers || [];
-  const isSA = App.hasHomePerm('super_admin');
-  const dis = isSA ? '' : ' disabled';
 
   const oMap = {};
   overrides.forEach(o => { oMap[`${o.account_id}|${o.module_id}`] = o; });
@@ -211,14 +206,13 @@ function renderTierGrid(ct, data) {
       const curVal = ov?.is_active ? (ov.module_tier || '') : '';
       const selStyle = curVal ? 'color:var(--acc);font-weight:600;border-color:var(--acc)' : 'color:var(--t4)';
       const opts = tierOpts.replace(`value="${curVal}"`, `value="${curVal}" selected`);
-      cells += `<td><select class="fl" style="width:70px;font-size:10px;padding:3px 6px;${selStyle}" onchange="Admin.markTierDirty('${esc(acc.account_id)}','${esc(m.module_id)}',this.value)"${dis}>${opts}</select></td>`;
+      cells += `<td><select class="fl" style="width:70px;font-size:10px;padding:3px 6px;${selStyle}" onchange="Admin.markTierDirty('${esc(acc.account_id)}','${esc(m.module_id)}',this.value)">${opts}</select></td>`;
     });
     rows += `<tr>${cells}</tr>`;
   });
 
-  const hint = isSA ? 'Per-account module tier overrides. Blank (—) = uses global tier. Select a tier to override.' : 'View only — requires Super Admin to edit.';
   ct.innerHTML = `
-    <div style="font-size:11px;color:var(--t3);margin-bottom:10px">${hint}</div>
+    <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Per-account module tier overrides. Blank (—) = uses global tier. Select a tier to override.</div>
     <div class="card" style="padding:0;overflow-x:auto">
       <table class="tbl"><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>
     </div>

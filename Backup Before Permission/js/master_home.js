@@ -1,9 +1,9 @@
 /**
- * Version 1.3 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.2 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * master_home.js — Master Data (Modules, Stores, Departments)
- * v1.3: Read-only mode for non-super_admin (modules/stores/depts)
+ * v1.2: D1 sortable stores + depts tables, modules A-Z default
  * ═══════════════════════════════════════════
  */
 
@@ -35,23 +35,20 @@ async function loadModules() {
 
 function renderModulesTable(ct) {
   const mods = App.sortData(M.modules || [], 'module_id', 'asc');
-  const isSA = App.hasHomePerm('super_admin');
-  const dis = isSA ? '' : ' disabled';
   const statusOpts = ['active', 'coming_soon', 'disabled'].map(s => `<option value="${s}">${s.replace('_', ' ')}</option>`).join('');
   let rows = mods.map(m => {
     const selHtml = statusOpts.replace(`value="${m.status}"`, `value="${m.status}" selected`);
     return `<tr>
       <td style="font-weight:600;font-size:11px">${esc(m.module_id)}</td>
-      <td><input class="fl" style="width:120px" value="${esc(m.module_name || '')}" onchange="Master.markModDirty('${esc(m.module_id)}','module_name',this.value)"${dis}></td>
-      <td><input class="fl" style="width:120px" value="${esc(m.module_name_en || '')}" onchange="Master.markModDirty('${esc(m.module_id)}','module_name_en',this.value)"${dis}></td>
-      <td><select class="fl" style="width:100px;font-size:10px" onchange="Master.markModDirty('${esc(m.module_id)}','status',this.value)"${dis}>${selHtml}</select></td>
-      <td class="hide-m"><input class="fl" style="width:180px;font-size:10px" value="${esc(m.app_url || '')}" onchange="Master.markModDirty('${esc(m.module_id)}','app_url',this.value)"${dis}></td>
+      <td><input class="fl" style="width:120px" value="${esc(m.module_name || '')}" onchange="Master.markModDirty('${esc(m.module_id)}','module_name',this.value)"></td>
+      <td><input class="fl" style="width:120px" value="${esc(m.module_name_en || '')}" onchange="Master.markModDirty('${esc(m.module_id)}','module_name_en',this.value)"></td>
+      <td><select class="fl" style="width:100px;font-size:10px" onchange="Master.markModDirty('${esc(m.module_id)}','status',this.value)">${selHtml}</select></td>
+      <td class="hide-m"><input class="fl" style="width:180px;font-size:10px" value="${esc(m.app_url || '')}" onchange="Master.markModDirty('${esc(m.module_id)}','app_url',this.value)"></td>
     </tr>`;
   }).join('');
 
-  const hint = isSA ? 'Edit fields inline. Click Save when done.' : 'View only — requires Super Admin to edit.';
   ct.innerHTML = `
-    <div style="font-size:11px;color:var(--t3);margin-bottom:10px">${hint}</div>
+    <div style="font-size:11px;color:var(--t3);margin-bottom:10px">Edit fields inline. Click Save when done.</div>
     <div class="card" style="padding:0;overflow-x:auto">
       <table class="tbl"><thead><tr><th>Module ID</th><th>Name TH</th><th>Name EN</th><th>Status</th><th class="hide-m">URL</th></tr></thead>
       <tbody>${rows}</tbody></table>
@@ -109,7 +106,6 @@ async function loadStores() {
 function renderStoresTable(ct) {
   const ST = App.getSortState('stores');
   const sorted = App.sortData(M.stores || [], ST ? ST.key : 'store_id', ST ? ST.dir : 'asc');
-  const isSA = App.hasHomePerm('super_admin');
   let rows = '';
   if (sorted.length === 0) {
     rows = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--t3)">No stores</td></tr>';
@@ -119,7 +115,7 @@ function renderStoresTable(ct) {
       <td>${esc(s.store_name)}</td>
       <td class="hide-m">${esc(s.store_name_th || '-')}</td>
       <td><span class="sts ${s.is_active ? 'sts-ok' : 'sts-err'}">${s.is_active ? 'Active' : 'Inactive'}</span></td>
-      <td>${isSA ? `<a class="lk" onclick="Master.showEditStore('${esc(s.store_id)}')">Edit</a>` : ''}</td>
+      <td><a class="lk" onclick="Master.showEditStore('${esc(s.store_id)}')">Edit</a></td>
     </tr>`).join('');
   }
   ct.innerHTML = `
@@ -213,7 +209,6 @@ async function loadDepts() {
 function renderDeptsTable(ct) {
   const ST = App.getSortState('depts');
   const sorted = App.sortData(M.depts || [], ST ? ST.key : 'dept_id', ST ? ST.dir : 'asc');
-  const isSA = App.hasHomePerm('super_admin');
   let rows = '';
   if (sorted.length === 0) {
     rows = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--t3)">No departments</td></tr>';
@@ -223,7 +218,7 @@ function renderDeptsTable(ct) {
       <td>${esc(d.dept_name)}</td>
       <td class="hide-m">${esc(d.dept_name_th || '-')}</td>
       <td><span class="sts ${d.is_active ? 'sts-ok' : 'sts-err'}">${d.is_active ? 'Active' : 'Inactive'}</span></td>
-      <td>${isSA ? `<a class="lk" onclick="Master.showEditDept('${esc(d.dept_id)}')">Edit</a>` : ''}</td>
+      <td><a class="lk" onclick="Master.showEditDept('${esc(d.dept_id)}')">Edit</a></td>
     </tr>`).join('');
   }
   ct.innerHTML = `

@@ -1,9 +1,9 @@
 /**
- * Version 1.4 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.3 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * app_home.js — Router + State + Sidebar + Layout Helpers + Utilities
- * v1.4: DB-driven home permission system (hasHomePerm replaces tierLevel check)
+ * v1.3: D1 sortData/sortTh utilities, D2 module visibility, D3 hard refresh
  * ═══════════════════════════════════════════
  *
  * Route Map:
@@ -25,20 +25,16 @@ const App = (() => {
   const S = {
     session: null,       // from init_bundle
     modules: null,       // from init_bundle
-    homePermission: null, // from init_bundle: 'super_admin'|'admin'|'edit'|'view_only'|'no_access'
     _bundleLoaded: false,
     _bundleLoading: false,
     profile: null,
     _profileLoaded: false,
-    stores: null,
-    depts: null,
+    stores: null,        // B1: cache stores (shared across Register + Create Account)
+    depts: null,         // B1: cache depts
     _storesLoaded: false,
     _deptsLoaded: false,
     sidebarCollapsed: false,
   };
-
-  const PERM_LEVELS = { 'no_access': 0, 'view_only': 1, 'edit': 2, 'admin': 3, 'super_admin': 4 };
-  function hasHomePerm(minLevel) { return (PERM_LEVELS[S.homePermission] || 0) >= (PERM_LEVELS[minLevel] || 0); }
 
   const appEl = () => document.getElementById('app');
   let currentRoute = '';
@@ -96,18 +92,6 @@ const App = (() => {
       }
     }
 
-    // Permission guard (only if bundle loaded — backend also checks)
-    if (S._bundleLoaded && S.homePermission) {
-      const adminRoutes = ['admin', 'master', 'account-detail', 'acct-create'];
-      const editRoutes = ['audit'];
-      if (adminRoutes.includes(route) && !hasHomePerm('admin')) {
-        toast('ไม่มีสิทธิ์เข้าถึงหน้านี้', 'error'); return go('dashboard');
-      }
-      if (editRoutes.includes(route) && !hasHomePerm('edit')) {
-        toast('ไม่มีสิทธิ์เข้าถึงหน้านี้', 'error'); return go('dashboard');
-      }
-    }
-
     currentRoute = route;
     currentParams = params;
 
@@ -150,7 +134,6 @@ const App = (() => {
       const data = await API.initBundle();
       S.session = data.session;
       S.modules = data.modules;
-      S.homePermission = data.home_permission || 'view_only';
       S._bundleLoaded = true;
       Screens.fillDashboard(S.session, S.modules);
       buildSidebar(); // rebuild with real module data
@@ -233,7 +216,7 @@ const App = (() => {
 
   // ═══ D3: HARD REFRESH ═══
   function hardRefresh() {
-    S.session = null; S.modules = null; S.profile = null; S.homePermission = null;
+    S.session = null; S.modules = null; S.profile = null;
     S._bundleLoaded = false; S._profileLoaded = false;
     S.stores = null; S.depts = null;
     S._storesLoaded = false; S._deptsLoaded = false;
@@ -328,6 +311,7 @@ const App = (() => {
     const s = API.getSession();
     if (!s) return;
     const tierLevel = parseInt((s.tier_id || 'T9').replace('T', ''));
+    const isAdmin = tierLevel <= 2;
     const cl = S.sidebarCollapsed ? ' collapsed' : '';
 
     // Desktop sidebar
@@ -359,8 +343,8 @@ const App = (() => {
     html += sdGroup('modules', '⊞', 'Modules', modItems);
     html += '<div style="height:12px"></div>';
 
-    // Admin + Master (requires 'admin' permission)
-    if (hasHomePerm('admin')) {
+    // Admin group (T1-T2)
+    if (isAdmin) {
       html += sdGroup('admin', '⚙', 'Admin',
         sdFlyItem('admin', 'accounts', 'Accounts') +
         sdFlyItem('admin', 'permissions', 'Permissions') +
@@ -372,9 +356,6 @@ const App = (() => {
         sdFlyItem('master', 'stores', 'Stores') +
         sdFlyItem('master', 'depts', 'Departments')
       );
-    }
-    // Reports (requires 'edit' permission)
-    if (hasHomePerm('edit')) {
       html += sdGroup('reports', '☰', 'Reports',
         `<div class="sd-flyout-item" onclick="App.go('audit')">Audit Trail</div>`
       );
@@ -392,7 +373,7 @@ const App = (() => {
     _sidebarBuilt = true;
 
     // Also build mobile sidebar
-    buildMobileSidebar(s);
+    buildMobileSidebar(s, tierLevel, isAdmin);
 
     // Rebind flyout listeners every rebuild
     setupFlyout();
@@ -465,7 +446,7 @@ const App = (() => {
   }
 
   // ─── MOBILE SIDEBAR ───
-  function buildMobileSidebar(s) {
+  function buildMobileSidebar(s, tierLevel, isAdmin) {
     const panel = document.getElementById('sidebar-panel');
     if (!panel) return;
 
@@ -482,7 +463,7 @@ const App = (() => {
     html += '<div class="mob-sidebar-section">Modules</div>';
     if (S.modules) {
       S.modules.forEach(m => {
-        if (!m.is_accessible) return;
+        if (!m.is_accessible) return; // D2: hide completely
         if (m.status === 'active') {
           html += `<div class="mob-sd-item" onclick="Screens.launchModule('${esc(m.app_url)}')"><span class="sd-item-icon">⊞</span>${esc(m.module_name)}</div>`;
         } else {
@@ -491,7 +472,7 @@ const App = (() => {
       });
     }
 
-    if (hasHomePerm('admin')) {
+    if (isAdmin) {
       html += '<div style="height:8px"></div><div class="mob-sidebar-section">Admin</div>';
       html += mobNav('admin', 'accounts', '⚙', 'Accounts');
       html += mobNav('admin', 'permissions', '⚙', 'Permissions');
@@ -503,10 +484,8 @@ const App = (() => {
       html += mobNav('master', 'depts', '▤', 'Departments');
     }
 
-    if (hasHomePerm('edit')) {
-      html += '<div style="height:8px"></div>';
-      html += mobItem('audit', '☰', 'Audit Trail');
-    }
+    html += '<div style="height:8px"></div>';
+    html += mobItem('audit', '☰', 'Audit Trail');
 
     html += `<div class="mob-sd-footer"><a href="#" style="font-size:10px;color:var(--red);text-decoration:none" onclick="Screens.doLogout();return false">→ Log out</a></div>`;
 
@@ -596,7 +575,7 @@ const App = (() => {
     S, go, updateHash, toast, showLoader, hideLoader,
     showDialog, closeDialog, showProfilePopup, esc,
     topbar, shell, toolbar, showError, hideError,
-    hardRefresh, hasHomePerm,
+    hardRefresh,
     sortData, sortTh, toggleSort, getSortState,
     getStoresCache, getDeptsCache, clearStoresCache, clearDeptsCache,
     openSidebar, closeSidebar, toggleSidebar,
