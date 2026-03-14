@@ -1,8 +1,9 @@
 /**
- * Version 1.0.5 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.1 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
- * app_home.js — Router + State + Sidebar + Utilities
+ * app_home.js — Router + State + Sidebar + Layout Helpers + Utilities
+ * v1.1: A1 shared shell/topbar/toolbar, A2 shared showError/hideError
  * ═══════════════════════════════════════════
  *
  * Route Map:
@@ -189,6 +190,50 @@ const App = (() => {
     const d = document.createElement('div');
     d.textContent = String(str);
     return d.innerHTML;
+  }
+
+  // ═══ SHARED LAYOUT HELPERS (A1: single source for all screens) ═══
+  function topbar() {
+    const s = API.getSession();
+    const name = s ? (s.display_name || s.display_label || '') : '';
+    const initial = (name || '?').charAt(0).toUpperCase();
+    return `<div class="topbar">
+      <div class="hamburger" onclick="App.openSidebar()">☰</div>
+      <div class="topbar-logo" onclick="App.go('dashboard')">SPG Home</div>
+      <div class="topbar-right">
+        <div class="topbar-user" onclick="App.showProfilePopup()" style="cursor:pointer">
+          <div class="topbar-avatar">${esc(initial)}</div>
+          <span class="hide-m">${esc(name)}</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function shell(inner) {
+    return `<div class="shell fade-in">
+      ${topbar()}
+      <div class="shell-body">
+        <nav class="sidebar"></nav>
+        <div class="shell-main">${inner}</div>
+      </div>
+    </div>`;
+  }
+
+  function toolbar(title, actions) {
+    return `<div class="toolbar"><div class="toolbar-title">${esc(title)}</div>${actions || ''}</div>`;
+  }
+
+  // ═══ FORM ERROR HELPERS (A2: single source for all screens) ═══
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+  function hideError(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('show');
   }
 
   // ═══ SIDEBAR — Desktop (fixed, flyout) ═══
@@ -459,6 +504,7 @@ const App = (() => {
   return {
     S, go, updateHash, toast, showLoader, hideLoader,
     showDialog, closeDialog, showProfilePopup, esc,
+    topbar, shell, toolbar, showError, hideError,
     openSidebar, closeSidebar, toggleSidebar,
     buildSidebar, loadBundle,
   };

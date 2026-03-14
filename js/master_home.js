@@ -1,9 +1,9 @@
 /**
- * Version 1.0 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.0.1 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * master_home.js — Master Data (Modules, Stores, Departments)
- * Extends Screens — depends on screens2_home.js shell renders
+ * v1.0.1: A2 use App.showError (remove duplicate showErr)
  * ═══════════════════════════════════════════
  */
 
@@ -133,7 +133,7 @@ function showCreateStore() {
 async function doCreateStore() {
   const store_id = document.getElementById('sto-id')?.value.trim();
   const store_name = document.getElementById('sto-name')?.value.trim();
-  if (!store_id || !store_name) { showErr('sto-error', 'Store ID and Name required'); return; }
+  if (!store_id || !store_name) { App.showError('sto-error', 'Store ID and Name required'); return; }
   const btn = document.getElementById('btn-sto-save');
   btn.disabled = true; btn.textContent = 'Creating...';
   try {
@@ -141,7 +141,7 @@ async function doCreateStore() {
     App.closeDialog();
     App.toast('Store created', 'success');
     M._stoLoaded = false; loadStores();
-  } catch (e) { showErr('sto-error', e.message); btn.disabled = false; btn.textContent = 'Create'; }
+  } catch (e) { App.showError('sto-error', e.message); btn.disabled = false; btn.textContent = 'Create'; }
 }
 
 function showEditStore(storeId) {
@@ -167,7 +167,7 @@ async function doUpdateStore(storeId) {
     App.closeDialog();
     App.toast('Store updated', 'success');
     M._stoLoaded = false; loadStores();
-  } catch (e) { showErr('sto-e-error', e.message); btn.disabled = false; btn.textContent = 'Save'; }
+  } catch (e) { App.showError('sto-e-error', e.message); btn.disabled = false; btn.textContent = 'Save'; }
 }
 
 // ════════════════════════════════
@@ -222,7 +222,7 @@ function showCreateDept() {
 async function doCreateDept() {
   const dept_id = document.getElementById('dep-id')?.value.trim();
   const dept_name = document.getElementById('dep-name')?.value.trim();
-  if (!dept_id || !dept_name) { showErr('dep-error', 'Dept ID and Name required'); return; }
+  if (!dept_id || !dept_name) { App.showError('dep-error', 'Dept ID and Name required'); return; }
   const btn = document.getElementById('btn-dep-save');
   btn.disabled = true; btn.textContent = 'Creating...';
   try {
@@ -230,7 +230,7 @@ async function doCreateDept() {
     App.closeDialog();
     App.toast('Department created', 'success');
     M._depLoaded = false; loadDepts();
-  } catch (e) { showErr('dep-error', e.message); btn.disabled = false; btn.textContent = 'Create'; }
+  } catch (e) { App.showError('dep-error', e.message); btn.disabled = false; btn.textContent = 'Create'; }
 }
 
 function showEditDept(deptId) {
@@ -254,11 +254,8 @@ async function doUpdateDept(deptId) {
     App.closeDialog();
     App.toast('Department updated', 'success');
     M._depLoaded = false; loadDepts();
-  } catch (e) { showErr('dep-e-error', e.message); btn.disabled = false; btn.textContent = 'Save'; }
+  } catch (e) { App.showError('dep-e-error', e.message); btn.disabled = false; btn.textContent = 'Save'; }
 }
-
-// ═══ HELPERS ═══
-function showErr(id, msg) { const el = document.getElementById(id); if (el) { el.textContent = msg; el.classList.add('show'); } }
 
 // ═══ TAB LOADER ═══
 function loadMasterTab(tab) {

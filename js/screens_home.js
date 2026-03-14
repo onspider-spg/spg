@@ -1,9 +1,10 @@
 /**
- * Version 1.0.3 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.1 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens_home.js — S1 Login, S3 Staff, S4 New Staff,
  *   S5 Dashboard, S6 Profile, S7 Register
+ * v1.1: A1 use App.shell/toolbar, A2 use App.showError, A3 remove dup buildSidebar
  * ═══════════════════════════════════════════
  */
 
@@ -13,36 +14,6 @@ const esc = App.esc;
 // ═══ LAYOUT HELPERS ═══
 function shellLogin(inner) {
   return `<div class="shell-login fade-in">${inner}</div>`;
-}
-
-function shell(active, inner) {
-  return `<div class="shell fade-in">
-    ${topbar()}
-    <div class="shell-body">
-      <nav class="sidebar"></nav>
-      <div class="shell-main">${inner}</div>
-    </div>
-  </div>`;
-}
-
-function topbar() {
-  const s = API.getSession();
-  const name = s ? (s.display_name || s.display_label || '') : '';
-  const initial = (name || '?').charAt(0).toUpperCase();
-  return `<div class="topbar">
-    <div class="hamburger" onclick="App.openSidebar()">☰</div>
-    <div class="topbar-logo" onclick="App.go('dashboard')">SPG Home</div>
-    <div class="topbar-right">
-      <div class="topbar-user" onclick="App.showProfilePopup()" style="cursor:pointer">
-        <div class="topbar-avatar">${esc(initial)}</div>
-        <span class="hide-m">${esc(name)}</span>
-      </div>
-    </div>
-  </div>`;
-}
-
-function toolbar(title, actions) {
-  return `<div class="toolbar"><div class="toolbar-title">${esc(title)}</div>${actions || ''}</div>`;
 }
 
 
@@ -68,11 +39,11 @@ function renderLogin() {
 async function doLogin() {
   const user = document.getElementById('inp-user')?.value.trim();
   const pass = document.getElementById('inp-pass')?.value;
-  if (!user || !pass) { showError('login-error', 'Please enter email and password'); return; }
+  if (!user || !pass) { App.App.showError('login-error', 'Please enter email and password'); return; }
 
   const btn = document.getElementById('btn-login');
   btn.disabled = true; btn.textContent = 'Signing in...';
-  hideError('login-error');
+  App.App.hideError('login-error');
   App.showLoader();
 
   try {
@@ -85,7 +56,7 @@ async function doLogin() {
       App.go('staff-select');
     }
   } catch (e) {
-    showError('login-error', e.message || 'Sign in failed');
+    App.showError('login-error', e.message || 'Sign in failed');
     btn.disabled = false; btn.textContent = 'Sign In';
   } finally {
     App.hideLoader();
@@ -138,7 +109,7 @@ async function doRegister() {
   const display_name = document.getElementById('inp-reg-nick')?.value.trim();
   const phone = document.getElementById('inp-reg-phone')?.value.trim();
   if (!email || !password || !full_name || !display_name || !phone) {
-    showError('reg-error', 'Please fill in all required fields'); return;
+    App.showError('reg-error', 'Please fill in all required fields'); return;
   }
   App.showLoader();
   try {
@@ -149,7 +120,7 @@ async function doRegister() {
     });
     App.toast('Registration submitted! Awaiting approval.', 'success');
     App.go('login');
-  } catch (e) { showError('reg-error', e.message); }
+  } catch (e) { App.App.showError('reg-error', e.message); }
   finally { App.hideLoader(); }
 }
 
@@ -226,7 +197,7 @@ function showPinPopup(userId) {
 
 async function submitPin(userId) {
   const pin = document.getElementById('inp-pin')?.value.trim();
-  if (!pin || pin.length !== 6) { showError('pin-error', 'PIN ต้อง 6 หลัก'); return; }
+  if (!pin || pin.length !== 6) { App.App.showError('pin-error', 'PIN ต้อง 6 หลัก'); return; }
   const acc = API.getAccountTemp();
   if (!acc) return;
   App.showLoader();
@@ -238,7 +209,7 @@ async function submitPin(userId) {
     App.go('dashboard');
   } catch (e) {
     App.hideLoader();
-    showError('pin-error', e.message || 'Incorrect PIN');
+    App.showError('pin-error', e.message || 'Incorrect PIN');
   }
 }
 
@@ -257,8 +228,8 @@ function showSetPinPopup(userId) {
 async function submitSetPin(userId) {
   const p1 = document.getElementById('inp-set-pin')?.value.trim();
   const p2 = document.getElementById('inp-set-pin2')?.value.trim();
-  if (!p1 || p1.length !== 6 || !/^\d{6}$/.test(p1)) { showError('setpin-error', 'PIN ต้องเป็นตัวเลข 6 หลัก'); return; }
-  if (p1 !== p2) { showError('setpin-error', 'PIN ไม่ตรงกัน'); return; }
+  if (!p1 || p1.length !== 6 || !/^\d{6}$/.test(p1)) { App.App.showError('setpin-error', 'PIN ต้องเป็นตัวเลข 6 หลัก'); return; }
+  if (p1 !== p2) { App.App.showError('setpin-error', 'PIN ไม่ตรงกัน'); return; }
   const acc = API.getAccountTemp();
   if (!acc) return;
   App.showLoader();
@@ -272,7 +243,7 @@ async function submitSetPin(userId) {
     App.go('dashboard');
   } catch (e) {
     App.hideLoader();
-    showError('setpin-error', e.message || 'ตั้ง PIN ไม่สำเร็จ');
+    App.showError('setpin-error', e.message || 'ตั้ง PIN ไม่สำเร็จ');
   }
 }
 
@@ -306,15 +277,15 @@ async function doCreateStaff() {
   const full_name = document.getElementById('inp-staff-full')?.value.trim();
   const pin = document.getElementById('inp-staff-pin')?.value.trim();
   const phone = document.getElementById('inp-staff-phone')?.value.trim();
-  if (!display_name || !full_name) { showError('staff-error', 'Please fill in all fields'); return; }
-  if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin)) { showError('staff-error', 'PIN must be 6 digits'); return; }
+  if (!display_name || !full_name) { App.App.showError('staff-error', 'Please fill in all fields'); return; }
+  if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin)) { App.App.showError('staff-error', 'PIN must be 6 digits'); return; }
   App.showLoader();
   try {
     const data = await API.createUser({ account_id: acc.account_id, display_name, full_name, pin, phone });
     App.toast(`เพิ่ม "${display_name}" สำเร็จ`, 'success');
     await selectStaff(data.user_id);
   } catch (e) {
-    showError('staff-error', e.message);
+    App.showError('staff-error', e.message);
     App.hideLoader();
   }
 }
@@ -327,8 +298,8 @@ function renderDashboard() {
   const s = API.getSession();
   if (!s) return renderLogin();
 
-  return shell('dashboard', `
-    ${toolbar('Dashboard')}
+  return App.shell(`
+    ${App.toolbar('Dashboard')}
     <div class="content">
       <div style="margin-bottom:20px">
         <div style="font-size:var(--fs-body);font-weight:700;margin-bottom:var(--sp-xs)" id="dash-greeting">Welcome, ${esc(s.display_name || s.display_label)}</div>
@@ -379,9 +350,6 @@ function fillDashboard(session, modules) {
       <div class="mod-arr">›</div>
     </div>`;
   }).join('') || '<div class="empty-state"><div class="empty-text">No modules available</div></div>';
-
-  // Build sidebar with module data
-  App.buildSidebar();
 }
 
 function launchModule(url) {
@@ -401,8 +369,8 @@ function renderProfile() {
   const s = API.getSession();
   if (!s) return renderLogin();
 
-  return shell('profile', `
-    ${toolbar('Profile')}
+  return App.shell(`
+    ${App.toolbar('Profile')}
     <div class="content">
       <div class="card" style="max-width:500px" id="profile-card">
         <div style="text-align:center;padding:20px;color:var(--t3)">Loading...</div>
@@ -481,7 +449,7 @@ function showEditProfile() {
 async function doSaveProfile() {
   const display_name = document.getElementById('pf-nick')?.value.trim();
   const phone = document.getElementById('pf-phone')?.value.trim();
-  if (!display_name) { showError('pf-edit-error', 'Display name is required'); return; }
+  if (!display_name) { App.App.showError('pf-edit-error', 'Display name is required'); return; }
   const btn = document.getElementById('btn-pf-save');
   btn.disabled = true; btn.textContent = 'Saving...';
   try {
@@ -496,7 +464,7 @@ async function doSaveProfile() {
     const s = API.getSession();
     if (s) { s.display_name = display_name; localStorage.setItem('spg_session', JSON.stringify(s)); }
   } catch (e) {
-    showError('pf-edit-error', e.message || 'Update failed');
+    App.showError('pf-edit-error', e.message || 'Update failed');
     btn.disabled = false; btn.textContent = 'Save';
   }
 }
@@ -516,9 +484,9 @@ async function doChangePassword() {
   const current_password = document.getElementById('pw-current')?.value;
   const new_password = document.getElementById('pw-new')?.value;
   const confirm_password = document.getElementById('pw-confirm')?.value;
-  if (!current_password) { showError('pw-error', 'กรุณากรอกรหัสผ่านปัจจุบัน'); return; }
-  if (!new_password || new_password.length < 8) { showError('pw-error', 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัว'); return; }
-  if (new_password !== confirm_password) { showError('pw-error', 'Passwords do not match'); return; }
+  if (!current_password) { App.App.showError('pw-error', 'กรุณากรอกรหัสผ่านปัจจุบัน'); return; }
+  if (!new_password || new_password.length < 8) { App.App.showError('pw-error', 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัว'); return; }
+  if (new_password !== confirm_password) { App.App.showError('pw-error', 'Passwords do not match'); return; }
   const btn = document.getElementById('btn-pw-save');
   btn.disabled = true; btn.textContent = 'Changing...';
   try {
@@ -526,7 +494,7 @@ async function doChangePassword() {
     App.closeDialog();
     App.toast('Password changed', 'success');
   } catch (e) {
-    showError('pw-error', e.message || 'Failed to change password');
+    App.showError('pw-error', e.message || 'Failed to change password');
     btn.disabled = false; btn.textContent = 'Change Password';
   }
 }
@@ -544,8 +512,8 @@ function showChangePinPopup() {
 async function doChangePin() {
   const new_pin = document.getElementById('pin-new')?.value.trim();
   const confirm_pin = document.getElementById('pin-confirm')?.value.trim();
-  if (!new_pin || new_pin.length !== 6 || !/^\d{6}$/.test(new_pin)) { showError('pin-chg-error', 'PIN ต้องเป็นตัวเลข 6 หลัก'); return; }
-  if (new_pin !== confirm_pin) { showError('pin-chg-error', 'PIN ไม่ตรงกัน'); return; }
+  if (!new_pin || new_pin.length !== 6 || !/^\d{6}$/.test(new_pin)) { App.App.showError('pin-chg-error', 'PIN ต้องเป็นตัวเลข 6 หลัก'); return; }
+  if (new_pin !== confirm_pin) { App.App.showError('pin-chg-error', 'PIN ไม่ตรงกัน'); return; }
   const btn = document.getElementById('btn-pin-save');
   btn.disabled = true; btn.textContent = 'Changing...';
   try {
@@ -553,7 +521,7 @@ async function doChangePin() {
     App.closeDialog();
     App.toast('PIN changed', 'success');
   } catch (e) {
-    showError('pin-chg-error', e.message || 'Failed to change PIN');
+    App.showError('pin-chg-error', e.message || 'Failed to change PIN');
     btn.disabled = false; btn.textContent = 'Change PIN';
   }
 }
@@ -572,20 +540,6 @@ async function doLogout() {
   App.S.profile = null;
   App.go('login');
   App.toast('Signed out', 'info');
-}
-
-
-// ═══ HELPERS ═══
-function showError(id, msg) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = msg;
-  el.classList.add('show');
-}
-function hideError(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.classList.remove('show');
 }
 
 

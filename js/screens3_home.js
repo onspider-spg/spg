@@ -1,14 +1,14 @@
 /**
- * Version 1.0 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.0.1 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens3_home.js — Account Detail, Create Account, Audit Trail
+ * v1.0.1: A2 use App.showError (remove duplicate showErr)
  * ═══════════════════════════════════════════
  */
 
 (() => {
 const esc = App.esc;
-function showErr(id, msg) { const el = document.getElementById(id); if (el) { el.textContent = msg; el.classList.add('show'); } }
 
 // ════════════════════════════════
 // ACCOUNT DETAIL — view + edit + users
@@ -110,7 +110,7 @@ async function doSaveAccount() {
     App.closeDialog();
     App.toast('Account updated', 'success');
     loadAccountDetail(a.account_id);
-  } catch (e) { showErr('ea-error', e.message); btn.disabled = false; btn.textContent = 'Save'; }
+  } catch (e) { App.showError('ea-error', e.message); btn.disabled = false; btn.textContent = 'Save'; }
 }
 
 async function doAccountAction(action) {
@@ -153,13 +153,13 @@ async function doSaveUser(userId) {
   btn.disabled = true; btn.textContent = 'Saving...';
   const data = { user_id: userId, display_name: document.getElementById('eu-nick')?.value.trim(), full_name: document.getElementById('eu-full')?.value.trim(), phone: document.getElementById('eu-phone')?.value.trim(), is_active: document.getElementById('eu-active')?.value === 'true' };
   const pin = document.getElementById('eu-pin')?.value.trim();
-  if (pin) { if (pin.length < 4) { showErr('eu-error', 'PIN must be at least 4 digits'); btn.disabled = false; btn.textContent = 'Save'; return; } data.new_pin = pin; }
+  if (pin) { if (pin.length < 4) { App.showError('eu-error', 'PIN must be at least 4 digits'); btn.disabled = false; btn.textContent = 'Save'; return; } data.new_pin = pin; }
   try {
     await API.adminUpdateUser(data);
     App.closeDialog();
     App.toast('User updated', 'success');
     loadAccountDetail(_accDetail.account_id);
-  } catch (e) { showErr('eu-error', e.message); btn.disabled = false; btn.textContent = 'Save'; }
+  } catch (e) { App.showError('eu-error', e.message); btn.disabled = false; btn.textContent = 'Save'; }
 }
 
 // ════════════════════════════════
@@ -199,8 +199,8 @@ async function doCreateAccount() {
   const username = document.getElementById('ca-user')?.value.trim();
   const password = document.getElementById('ca-pass')?.value;
   const display_label = document.getElementById('ca-label')?.value.trim();
-  if (!username || !password || !display_label) { showErr('ca-error', 'Please fill required fields'); return; }
-  if (password.length < 8) { showErr('ca-error', 'Password must be at least 8 characters'); return; }
+  if (!username || !password || !display_label) { App.showError('ca-error', 'Please fill required fields'); return; }
+  if (password.length < 8) { App.showError('ca-error', 'Password must be at least 8 characters'); return; }
   const btn = document.getElementById('btn-ca-save');
   btn.disabled = true; btn.textContent = 'Creating...';
   try {
@@ -213,7 +213,7 @@ async function doCreateAccount() {
     });
     App.toast(`Account ${data.account_id} created`, 'success');
     App.go('account-detail', { account_id: data.account_id });
-  } catch (e) { showErr('ca-error', e.message); btn.disabled = false; btn.textContent = 'Create Account'; }
+  } catch (e) { App.showError('ca-error', e.message); btn.disabled = false; btn.textContent = 'Create Account'; }
 }
 
 // ════════════════════════════════
