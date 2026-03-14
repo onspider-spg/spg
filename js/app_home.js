@@ -1,9 +1,9 @@
 /**
- * Version 1.4.2 | 15 MAR 2026 | Siam Palette Group
+ * Version 1.4.3 | 15 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * app_home.js — Router + State + Sidebar + Layout Helpers + Utilities
- * v1.4.2: Profile popup add Store/Dept/Tier detail rows
+ * v1.4.3: Fix hasHomePerm fallback to tier when bundle not loaded
  * ═══════════════════════════════════════════
  *
  * Route Map:
@@ -38,7 +38,16 @@ const App = (() => {
   };
 
   const PERM_LEVELS = { 'no_access': 0, 'view_only': 1, 'edit': 2, 'admin': 3, 'super_admin': 4 };
-  function hasHomePerm(minLevel) { return (PERM_LEVELS[S.homePermission] || 0) >= (PERM_LEVELS[minLevel] || 0); }
+  function hasHomePerm(minLevel) {
+    // If homePermission loaded from bundle → use it
+    if (S.homePermission) return (PERM_LEVELS[S.homePermission] || 0) >= (PERM_LEVELS[minLevel] || 0);
+    // Fallback: use session tier (before bundle loads, or if missing)
+    const s = API.getSession();
+    if (!s) return false;
+    const tl = parseInt((s.tier_id || 'T9').replace('T', ''));
+    const fallback = tl === 1 ? 'super_admin' : tl === 2 ? 'admin' : tl <= 4 ? 'edit' : 'view_only';
+    return (PERM_LEVELS[fallback] || 0) >= (PERM_LEVELS[minLevel] || 0);
+  }
 
   const appEl = () => document.getElementById('app');
   let currentRoute = '';
