@@ -1,9 +1,9 @@
 /**
- * Version 1.0 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.1 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * admin_home.js — Admin Functions (Accounts, Permissions, Tier Access, Requests)
- * Extends Screens object — depends on screens2_home.js shell renders
+ * v1.1: B3 cache accounts/requests (no re-fetch on tab return)
  * ═══════════════════════════════════════════
  */
 
@@ -12,10 +12,10 @@ const esc = App.esc;
 
 // ═══ STATE ═══
 const A = {
-  accounts: null, _accLoaded: false, _accLoading: false,
+  accounts: null, _accLoaded: false, _accLoading: false, _accData: null,
   perms: null, _permLoaded: false, _permLoading: false,
   tier: null, _tierLoaded: false, _tierLoading: false,
-  regs: null, _regLoaded: false, _regLoading: false,
+  regs: null, _regLoaded: false, _regLoading: false, _regData: null,
   permDirty: {},   // track changes: { "module_tier": newLevel }
   tierDirty: {},   // track changes: { "acc_mod": newTier | null }
 };
@@ -25,12 +25,19 @@ const A = {
 // ════════════════════════════════
 async function loadAccounts(filters = {}) {
   if (A._accLoading) return;
-  A._accLoading = true;
   const ct = document.getElementById('admin-content');
-  if (!ct) { A._accLoading = false; return; }
+  if (!ct) return;
+  // B3: use cache when returning to tab (no explicit filter)
+  const hasFilter = filters.status_filter || filters.search;
+  if (A._accLoaded && A._accData && !hasFilter) {
+    renderAccountsTable(ct, A._accData);
+    return;
+  }
+  A._accLoading = true;
   try {
     const data = await API.adminGetAccounts(filters);
     A.accounts = data.accounts;
+    A._accData = data;
     A._accLoaded = true;
     renderAccountsTable(ct, data);
   } catch (e) { App.toast(e.message, 'error'); }
@@ -234,12 +241,18 @@ async function saveTierAccess() {
 // ════════════════════════════════
 async function loadRequests() {
   if (A._regLoading) return;
-  A._regLoading = true;
   const ct = document.getElementById('admin-content');
-  if (!ct) { A._regLoading = false; return; }
+  if (!ct) return;
+  // B3: use cache when returning to tab
+  if (A._regLoaded && A._regData) {
+    renderRequestsTable(ct, A._regData);
+    return;
+  }
+  A._regLoading = true;
   try {
     const data = await API.adminGetRegistrations();
     A.regs = data.requests;
+    A._regData = data;
     A._regLoaded = true;
     renderRequestsTable(ct, data);
   } catch (e) { App.toast(e.message, 'error'); }

@@ -1,10 +1,10 @@
 /**
- * Version 1.1 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.2 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens_home.js — S1 Login, S3 Staff, S4 New Staff,
  *   S5 Dashboard, S6 Profile, S7 Register
- * v1.1: A1 use App.shell/toolbar, A2 use App.showError, A3 remove dup buildSidebar
+ * v1.2: B1 use stores/depts cache in loadRegisterDropdowns
  * ═══════════════════════════════════════════
  */
 
@@ -92,13 +92,13 @@ function renderRegister() {
 
 async function loadRegisterDropdowns() {
   try {
-    const [stores, depts] = await Promise.all([API.getStores(), API.getDepartments()]);
+    const [stores, depts] = await Promise.all([App.getStoresCache(), App.getDeptsCache()]);
     const storeEl = document.getElementById('inp-reg-store');
     const deptEl = document.getElementById('inp-reg-dept');
     if (storeEl) storeEl.innerHTML = '<option value="">-- Select Store --</option>' +
-      (stores.stores || []).filter(s => s.store_id !== 'ALL').map(s => `<option value="${esc(s.store_id)}">${esc(s.store_name_th || s.store_name)}</option>`).join('');
+      stores.filter(s => s.store_id !== 'ALL').map(s => `<option value="${esc(s.store_id)}">${esc(s.store_name_th || s.store_name)}</option>`).join('');
     if (deptEl) deptEl.innerHTML = '<option value="">-- Select Dept --</option>' +
-      (depts.departments || []).map(d => `<option value="${esc(d.dept_id)}">${esc(d.dept_name_th || d.dept_name)}</option>`).join('');
+      depts.map(d => `<option value="${esc(d.dept_id)}">${esc(d.dept_name_th || d.dept_name)}</option>`).join('');
   } catch (e) { App.toast('Failed to load dropdowns', 'error'); }
 }
 
@@ -538,6 +538,8 @@ async function doLogout() {
   App.S.session = null;
   App.S.modules = null;
   App.S.profile = null;
+  App.clearStoresCache();
+  App.clearDeptsCache();
   App.go('login');
   App.toast('Signed out', 'info');
 }

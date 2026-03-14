@@ -1,9 +1,9 @@
 /**
- * Version 1.0.1 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.1 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens3_home.js — Account Detail, Create Account, Audit Trail
- * v1.0.1: A2 use App.showError (remove duplicate showErr)
+ * v1.1: B1 stores/depts cache, B2 save→memory (no re-fetch)
  * ═══════════════════════════════════════════
  */
 
@@ -100,16 +100,20 @@ async function doSaveAccount() {
   const btn = document.getElementById('btn-ea-save');
   btn.disabled = true; btn.textContent = 'Saving...';
   try {
-    await API.adminUpdateAccount({
+    const updates = {
       account_id: a.account_id,
       display_label: document.getElementById('ea-label')?.value.trim(),
       tier_id: document.getElementById('ea-tier')?.value,
       store_id: document.getElementById('ea-store')?.value.trim(),
       dept_id: document.getElementById('ea-dept')?.value.trim(),
-    });
+    };
+    await API.adminUpdateAccount(updates);
     App.closeDialog();
     App.toast('Account updated', 'success');
-    loadAccountDetail(a.account_id);
+    // B2: update memory directly → re-render (no re-fetch)
+    Object.assign(_accDetail, updates);
+    const ct = document.getElementById('acct-detail-content');
+    if (ct) renderDetail(ct);
   } catch (e) { App.showError('ea-error', e.message); btn.disabled = false; btn.textContent = 'Save'; }
 }
 
@@ -128,7 +132,10 @@ async function confirmAccountAction(action) {
   try {
     await API.adminUpdateAccount({ account_id: _accDetail.account_id, action });
     App.toast(`Account ${action}d`, 'success');
-    loadAccountDetail(_accDetail.account_id);
+    // B2: update memory directly → re-render (no re-fetch)
+    _accDetail.status = action === 'suspend' ? 'suspended' : 'approved';
+    const ct = document.getElementById('acct-detail-content');
+    if (ct) renderDetail(ct);
   } catch (e) { App.toast(e.message, 'error'); }
   finally { App.hideLoader(); }
 }
@@ -158,7 +165,11 @@ async function doSaveUser(userId) {
     await API.adminUpdateUser(data);
     App.closeDialog();
     App.toast('User updated', 'success');
-    loadAccountDetail(_accDetail.account_id);
+    // B2: update memory directly → re-render (no re-fetch)
+    const u = (_accUsers || []).find(x => x.user_id === userId);
+    if (u) { u.display_name = data.display_name; u.full_name = data.full_name; u.phone = data.phone; u.is_active = data.is_active; if (pin) u.has_pin = true; }
+    const ct = document.getElementById('acct-detail-content');
+    if (ct) renderDetail(ct);
   } catch (e) { App.showError('eu-error', e.message); btn.disabled = false; btn.textContent = 'Save'; }
 }
 
@@ -171,9 +182,9 @@ async function renderCreateAccountForm() {
   let storeOpts = '<option value="">-- ไม่ระบุ --</option>';
   let deptOpts = '<option value="">-- ไม่ระบุ --</option>';
   try {
-    const [stores, depts] = await Promise.all([API.getStores(), API.getDepartments()]);
-    storeOpts += (stores.stores || []).filter(s => s.store_id !== 'ALL').map(s => `<option value="${esc(s.store_id)}">${esc(s.store_name)}</option>`).join('');
-    deptOpts += (depts.departments || []).map(d => `<option value="${esc(d.dept_id)}">${esc(d.dept_name)}</option>`).join('');
+    const [stores, depts] = await Promise.all([App.getStoresCache(), App.getDeptsCache()]);
+    storeOpts += stores.filter(s => s.store_id !== 'ALL').map(s => `<option value="${esc(s.store_id)}">${esc(s.store_name)}</option>`).join('');
+    deptOpts += depts.map(d => `<option value="${esc(d.dept_id)}">${esc(d.dept_name)}</option>`).join('');
   } catch { /* use defaults */ }
 
   ct.innerHTML = `

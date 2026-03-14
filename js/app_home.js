@@ -1,9 +1,9 @@
 /**
- * Version 1.1 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.2 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * app_home.js — Router + State + Sidebar + Layout Helpers + Utilities
- * v1.1: A1 shared shell/topbar/toolbar, A2 shared showError/hideError
+ * v1.2: B1 stores/depts cache helpers
  * ═══════════════════════════════════════════
  *
  * Route Map:
@@ -29,6 +29,10 @@ const App = (() => {
     _bundleLoading: false,
     profile: null,
     _profileLoaded: false,
+    stores: null,        // B1: cache stores (shared across Register + Create Account)
+    depts: null,         // B1: cache depts
+    _storesLoaded: false,
+    _deptsLoaded: false,
     sidebarCollapsed: false,
   };
 
@@ -235,6 +239,24 @@ const App = (() => {
     if (!el) return;
     el.classList.remove('show');
   }
+
+  // ═══ STORES/DEPTS CACHE (B1: fetch once, reuse everywhere) ═══
+  async function getStoresCache() {
+    if (S._storesLoaded && S.stores) return S.stores;
+    const data = await API.getStores();
+    S.stores = data.stores || [];
+    S._storesLoaded = true;
+    return S.stores;
+  }
+  async function getDeptsCache() {
+    if (S._deptsLoaded && S.depts) return S.depts;
+    const data = await API.getDepartments();
+    S.depts = data.departments || [];
+    S._deptsLoaded = true;
+    return S.depts;
+  }
+  function clearStoresCache() { S.stores = null; S._storesLoaded = false; }
+  function clearDeptsCache() { S.depts = null; S._deptsLoaded = false; }
 
   // ═══ SIDEBAR — Desktop (fixed, flyout) ═══
   let _sidebarBuilt = false;
@@ -505,6 +527,7 @@ const App = (() => {
     S, go, updateHash, toast, showLoader, hideLoader,
     showDialog, closeDialog, showProfilePopup, esc,
     topbar, shell, toolbar, showError, hideError,
+    getStoresCache, getDeptsCache, clearStoresCache, clearDeptsCache,
     openSidebar, closeSidebar, toggleSidebar,
     buildSidebar, loadBundle,
   };
