@@ -1,9 +1,9 @@
 /**
- * Version 1.0.1 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.2 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * master_home.js — Master Data (Modules, Stores, Departments)
- * v1.0.1: A2 use App.showError (remove duplicate showErr)
+ * v1.2: D1 sortable stores + depts tables, modules A-Z default
  * ═══════════════════════════════════════════
  */
 
@@ -34,7 +34,7 @@ async function loadModules() {
 }
 
 function renderModulesTable(ct) {
-  const mods = M.modules || [];
+  const mods = App.sortData(M.modules || [], 'module_id', 'asc');
   const statusOpts = ['active', 'coming_soon', 'disabled'].map(s => `<option value="${s}">${s.replace('_', ' ')}</option>`).join('');
   let rows = mods.map(m => {
     const selHtml = statusOpts.replace(`value="${m.status}"`, `value="${m.status}" selected`);
@@ -71,10 +71,17 @@ async function saveModules() {
     for (const module_id of keys) {
       await API.adminUpdateModule({ module_id, ...M.modDirty[module_id] });
     }
+    // C4: merge dirty into cache → re-render (no re-fetch)
+    if (M.modules) {
+      for (const module_id of keys) {
+        const mod = M.modules.find(m => m.module_id === module_id);
+        if (mod) Object.assign(mod, M.modDirty[module_id]);
+      }
+    }
     M.modDirty = {};
     App.toast(`Saved ${keys.length} module(s)`, 'success');
-    M._modLoaded = false;
-    loadModules();
+    const ct = document.getElementById('master-content');
+    if (ct) renderModulesTable(ct);
   } catch (e) { App.toast(e.message, 'error'); }
   finally { App.hideLoader(); }
 }
@@ -97,12 +104,13 @@ async function loadStores() {
 }
 
 function renderStoresTable(ct) {
-  const stores = M.stores || [];
+  const ST = App.getSortState('stores');
+  const sorted = App.sortData(M.stores || [], ST ? ST.key : 'store_id', ST ? ST.dir : 'asc');
   let rows = '';
-  if (stores.length === 0) {
-    rows = '<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--t3)">No stores</td></tr>';
+  if (sorted.length === 0) {
+    rows = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--t3)">No stores</td></tr>';
   } else {
-    rows = stores.map(s => `<tr>
+    rows = sorted.map(s => `<tr>
       <td style="font-weight:600;font-size:11px">${esc(s.store_id)}</td>
       <td>${esc(s.store_name)}</td>
       <td class="hide-m">${esc(s.store_name_th || '-')}</td>
@@ -112,7 +120,7 @@ function renderStoresTable(ct) {
   }
   ct.innerHTML = `
     <div class="card" style="padding:0;overflow:hidden">
-      <table class="tbl"><thead><tr><th>Store ID</th><th>Name</th><th class="hide-m">Name TH</th><th>Status</th><th></th></tr></thead>
+      <table class="tbl"><thead><tr>${App.sortTh('stores','store_id','Store ID')}${App.sortTh('stores','store_name','Name')}${App.sortTh('stores','store_name_th','Name TH',' class="hide-m"')}${App.sortTh('stores','is_active','Status')}<th></th></tr></thead>
       <tbody>${rows}</tbody></table>
     </div>`;
 }
@@ -136,11 +144,16 @@ async function doCreateStore() {
   if (!store_id || !store_name) { App.showError('sto-error', 'Store ID and Name required'); return; }
   const btn = document.getElementById('btn-sto-save');
   btn.disabled = true; btn.textContent = 'Creating...';
+  const newStore = { store_id, store_name, store_name_th: document.getElementById('sto-name-th')?.value.trim() || '', brand: document.getElementById('sto-brand')?.value.trim() || '', location: document.getElementById('sto-loc')?.value.trim() || '', is_active: true };
   try {
-    await API.adminCreateStore({ store_id, store_name, store_name_th: document.getElementById('sto-name-th')?.value.trim() || '', brand: document.getElementById('sto-brand')?.value.trim() || '', location: document.getElementById('sto-loc')?.value.trim() || '' });
+    await API.adminCreateStore(newStore);
     App.closeDialog();
     App.toast('Store created', 'success');
-    M._stoLoaded = false; loadStores();
+    // C3: push into cache → re-render (no re-fetch)
+    if (M.stores) M.stores.push(newStore);
+    App.clearStoresCache();
+    const ct = document.getElementById('master-content');
+    if (ct) renderStoresTable(ct);
   } catch (e) { App.showError('sto-error', e.message); btn.disabled = false; btn.textContent = 'Create'; }
 }
 
@@ -162,11 +175,17 @@ function showEditStore(storeId) {
 async function doUpdateStore(storeId) {
   const btn = document.getElementById('btn-sto-e-save');
   btn.disabled = true; btn.textContent = 'Saving...';
+  const updates = { store_id: storeId, store_name: document.getElementById('sto-e-name')?.value.trim(), store_name_th: document.getElementById('sto-e-name-th')?.value.trim(), brand: document.getElementById('sto-e-brand')?.value.trim(), location: document.getElementById('sto-e-loc')?.value.trim(), is_active: document.getElementById('sto-e-active')?.value === 'true' };
   try {
-    await API.adminUpdateStore({ store_id: storeId, store_name: document.getElementById('sto-e-name')?.value.trim(), store_name_th: document.getElementById('sto-e-name-th')?.value.trim(), brand: document.getElementById('sto-e-brand')?.value.trim(), location: document.getElementById('sto-e-loc')?.value.trim(), is_active: document.getElementById('sto-e-active')?.value === 'true' });
+    await API.adminUpdateStore(updates);
     App.closeDialog();
     App.toast('Store updated', 'success');
-    M._stoLoaded = false; loadStores();
+    // C3: update cache → re-render (no re-fetch)
+    const s = (M.stores || []).find(x => x.store_id === storeId);
+    if (s) Object.assign(s, updates);
+    App.clearStoresCache();
+    const ct = document.getElementById('master-content');
+    if (ct) renderStoresTable(ct);
   } catch (e) { App.showError('sto-e-error', e.message); btn.disabled = false; btn.textContent = 'Save'; }
 }
 
@@ -188,12 +207,13 @@ async function loadDepts() {
 }
 
 function renderDeptsTable(ct) {
-  const depts = M.depts || [];
+  const ST = App.getSortState('depts');
+  const sorted = App.sortData(M.depts || [], ST ? ST.key : 'dept_id', ST ? ST.dir : 'asc');
   let rows = '';
-  if (depts.length === 0) {
-    rows = '<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--t3)">No departments</td></tr>';
+  if (sorted.length === 0) {
+    rows = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--t3)">No departments</td></tr>';
   } else {
-    rows = depts.map(d => `<tr>
+    rows = sorted.map(d => `<tr>
       <td style="font-weight:600;font-size:11px">${esc(d.dept_id)}</td>
       <td>${esc(d.dept_name)}</td>
       <td class="hide-m">${esc(d.dept_name_th || '-')}</td>
@@ -203,7 +223,7 @@ function renderDeptsTable(ct) {
   }
   ct.innerHTML = `
     <div class="card" style="padding:0;overflow:hidden">
-      <table class="tbl"><thead><tr><th>Dept ID</th><th>Name (EN)</th><th class="hide-m">Name (TH)</th><th>Status</th><th></th></tr></thead>
+      <table class="tbl"><thead><tr>${App.sortTh('depts','dept_id','Dept ID')}${App.sortTh('depts','dept_name','Name (EN)')}${App.sortTh('depts','dept_name_th','Name (TH)',' class="hide-m"')}${App.sortTh('depts','is_active','Status')}<th></th></tr></thead>
       <tbody>${rows}</tbody></table>
     </div>`;
 }
@@ -225,11 +245,16 @@ async function doCreateDept() {
   if (!dept_id || !dept_name) { App.showError('dep-error', 'Dept ID and Name required'); return; }
   const btn = document.getElementById('btn-dep-save');
   btn.disabled = true; btn.textContent = 'Creating...';
+  const newDept = { dept_id, dept_name, dept_name_th: document.getElementById('dep-name-th')?.value.trim() || '', is_active: true };
   try {
-    await API.adminCreateDept({ dept_id, dept_name, dept_name_th: document.getElementById('dep-name-th')?.value.trim() || '' });
+    await API.adminCreateDept(newDept);
     App.closeDialog();
     App.toast('Department created', 'success');
-    M._depLoaded = false; loadDepts();
+    // C3: push into cache → re-render (no re-fetch)
+    if (M.depts) M.depts.push(newDept);
+    App.clearDeptsCache();
+    const ct = document.getElementById('master-content');
+    if (ct) renderDeptsTable(ct);
   } catch (e) { App.showError('dep-error', e.message); btn.disabled = false; btn.textContent = 'Create'; }
 }
 
@@ -249,11 +274,17 @@ function showEditDept(deptId) {
 async function doUpdateDept(deptId) {
   const btn = document.getElementById('btn-dep-e-save');
   btn.disabled = true; btn.textContent = 'Saving...';
+  const updates = { dept_id: deptId, dept_name: document.getElementById('dep-e-name')?.value.trim(), dept_name_th: document.getElementById('dep-e-name-th')?.value.trim(), is_active: document.getElementById('dep-e-active')?.value === 'true' };
   try {
-    await API.adminUpdateDept({ dept_id: deptId, dept_name: document.getElementById('dep-e-name')?.value.trim(), dept_name_th: document.getElementById('dep-e-name-th')?.value.trim(), is_active: document.getElementById('dep-e-active')?.value === 'true' });
+    await API.adminUpdateDept(updates);
     App.closeDialog();
     App.toast('Department updated', 'success');
-    M._depLoaded = false; loadDepts();
+    // C3: update cache → re-render (no re-fetch)
+    const d = (M.depts || []).find(x => x.dept_id === deptId);
+    if (d) Object.assign(d, updates);
+    App.clearDeptsCache();
+    const ct = document.getElementById('master-content');
+    if (ct) renderDeptsTable(ct);
   } catch (e) { App.showError('dep-e-error', e.message); btn.disabled = false; btn.textContent = 'Save'; }
 }
 
@@ -270,6 +301,14 @@ function addMasterItem(tab) {
   if (tab === 'stores') showCreateStore();
   if (tab === 'depts') showCreateDept();
 }
+
+// ═══ D1: SORT EVENT LISTENER ═══
+document.addEventListener('spg-sort', (e) => {
+  const ct = document.getElementById('master-content');
+  if (!ct) return;
+  if (e.detail.tableId === 'stores' && M._stoLoaded) renderStoresTable(ct);
+  if (e.detail.tableId === 'depts' && M._depLoaded) renderDeptsTable(ct);
+});
 
 // ═══ GLOBAL EXPORT ═══
 window.Master = {

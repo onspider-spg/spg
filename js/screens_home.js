@@ -1,10 +1,10 @@
 /**
- * Version 1.2 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.3 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens_home.js — S1 Login, S3 Staff, S4 New Staff,
  *   S5 Dashboard, S6 Profile, S7 Register
- * v1.2: B1 use stores/depts cache in loadRegisterDropdowns
+ * v1.3: D2 module visibility (hide no_access, show coming_soon dimmed)
  * ═══════════════════════════════════════════
  */
 
@@ -332,11 +332,11 @@ function fillDashboard(session, modules) {
     finance: { bg: 'var(--acc2)', c: 'var(--acc)', abbr: 'FN' },
   };
 
-  grid.innerHTML = modules.map(m => {
+  grid.innerHTML = modules.filter(m => m.is_accessible).map(m => {
     const cl = colors[m.module_id] || { bg: 'var(--bg3)', c: 'var(--t2)', abbr: (m.module_id || '??').substring(0, 2).toUpperCase() };
-    const disabled = !m.is_accessible || m.status !== 'active';
 
-    if (disabled) {
+    // D2: coming_soon = dimmed + badge, no_access already filtered out
+    if (m.status !== 'active') {
       return `<div class="mod-card disabled">
         <div class="mod-icon" style="background:${cl.bg};color:${cl.c}">${cl.abbr}</div>
         <div><div class="mod-name">${esc(m.module_name)}</div><div class="mod-desc">${esc(m.module_name_en || '')} · Coming soon</div></div>

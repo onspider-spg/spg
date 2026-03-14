@@ -1,9 +1,9 @@
 /**
- * Version 1.2 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.3 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * app_home.js — Router + State + Sidebar + Layout Helpers + Utilities
- * v1.2: B1 stores/depts cache helpers
+ * v1.3: D1 sortData/sortTh utilities, D2 module visibility, D3 hard refresh
  * ═══════════════════════════════════════════
  *
  * Route Map:
@@ -205,12 +205,22 @@ const App = (() => {
       <div class="hamburger" onclick="App.openSidebar()">☰</div>
       <div class="topbar-logo" onclick="App.go('dashboard')">SPG Home</div>
       <div class="topbar-right">
+        <div class="topbar-icon" onclick="App.hardRefresh()" title="Refresh">↻</div>
         <div class="topbar-user" onclick="App.showProfilePopup()" style="cursor:pointer">
           <div class="topbar-avatar">${esc(initial)}</div>
           <span class="hide-m">${esc(name)}</span>
         </div>
       </div>
     </div>`;
+  }
+
+  // ═══ D3: HARD REFRESH ═══
+  function hardRefresh() {
+    S.session = null; S.modules = null; S.profile = null;
+    S._bundleLoaded = false; S._profileLoaded = false;
+    S.stores = null; S.depts = null;
+    S._storesLoaded = false; S._deptsLoaded = false;
+    location.reload();
   }
 
   function shell(inner) {
@@ -239,6 +249,42 @@ const App = (() => {
     if (!el) return;
     el.classList.remove('show');
   }
+
+  // ═══ D1: SORT UTILITY (shared across all tables) ═══
+  let _sortState = {}; // { tableId: { key, dir } }
+
+  function sortData(arr, key, dir = 'asc') {
+    return [...arr].sort((a, b) => {
+      let va = a[key], vb = b[key];
+      if (va == null) va = '';
+      if (vb == null) vb = '';
+      if (typeof va === 'string') va = va.toLowerCase();
+      if (typeof vb === 'string') vb = vb.toLowerCase();
+      if (va < vb) return dir === 'asc' ? -1 : 1;
+      if (va > vb) return dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
+  function sortTh(tableId, key, label, extra = '') {
+    const st = _sortState[tableId];
+    const isActive = st && st.key === key;
+    const arrow = isActive ? (st.dir === 'asc' ? ' ▲' : ' ▼') : '';
+    return `<th${extra} style="cursor:pointer;user-select:none" onclick="App.toggleSort('${tableId}','${key}')">${esc(label)}${arrow}</th>`;
+  }
+
+  function toggleSort(tableId, key) {
+    const st = _sortState[tableId];
+    if (st && st.key === key) {
+      st.dir = st.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      _sortState[tableId] = { key, dir: 'asc' };
+    }
+    // Emit custom event — each table listens for its own re-render
+    document.dispatchEvent(new CustomEvent('spg-sort', { detail: { tableId } }));
+  }
+
+  function getSortState(tableId) { return _sortState[tableId] || null; }
 
   // ═══ STORES/DEPTS CACHE (B1: fetch once, reuse everywhere) ═══
   async function getStoresCache() {
@@ -280,11 +326,12 @@ const App = (() => {
     const personIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>';
     html += sdItem('profile', personIcon, 'Profile');
 
-    // Modules group (no space before — directly after Profile)
+    // Modules group — D2: hide no_access, show coming_soon dimmed
     let modItems = '';
     if (S.modules) {
       S.modules.forEach(m => {
-        if (m.status === 'active' && m.is_accessible) {
+        if (!m.is_accessible) return; // D2: hide completely
+        if (m.status === 'active') {
           modItems += `<div class="sd-flyout-item" onclick="Screens.launchModule('${esc(m.app_url)}')">${esc(m.module_name)}</div>`;
         } else {
           modItems += `<div class="sd-flyout-item" style="opacity:.4">${esc(m.module_name)} <span style="font-size:8px;padding:1px 5px;border-radius:4px;background:var(--orange-bg);color:var(--orange);margin-left:4px">Soon</span></div>`;
@@ -416,7 +463,8 @@ const App = (() => {
     html += '<div class="mob-sidebar-section">Modules</div>';
     if (S.modules) {
       S.modules.forEach(m => {
-        if (m.status === 'active' && m.is_accessible) {
+        if (!m.is_accessible) return; // D2: hide completely
+        if (m.status === 'active') {
           html += `<div class="mob-sd-item" onclick="Screens.launchModule('${esc(m.app_url)}')"><span class="sd-item-icon">⊞</span>${esc(m.module_name)}</div>`;
         } else {
           html += `<div class="mob-sd-item disabled"><span class="sd-item-icon">⊞</span>${esc(m.module_name)} <span style="font-size:7px;padding:1px 4px;border-radius:3px;background:var(--orange-bg);color:var(--orange)">Soon</span></div>`;
@@ -527,6 +575,8 @@ const App = (() => {
     S, go, updateHash, toast, showLoader, hideLoader,
     showDialog, closeDialog, showProfilePopup, esc,
     topbar, shell, toolbar, showError, hideError,
+    hardRefresh,
+    sortData, sortTh, toggleSort, getSortState,
     getStoresCache, getDeptsCache, clearStoresCache, clearDeptsCache,
     openSidebar, closeSidebar, toggleSidebar,
     buildSidebar, loadBundle,

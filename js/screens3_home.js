@@ -1,9 +1,9 @@
 /**
- * Version 1.1 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.2 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens3_home.js — Account Detail, Create Account, Audit Trail
- * v1.1: B1 stores/depts cache, B2 save→memory (no re-fetch)
+ * v1.2: D1 sortable users + audit tables
  * ═══════════════════════════════════════════
  */
 
@@ -41,8 +41,10 @@ function renderDetail(ct) {
   if (_accUsers.length === 0) {
     usersHtml = '<div style="color:var(--t3);font-size:12px;padding:12px">No users</div>';
   } else {
-    usersHtml = `<table class="tbl"><thead><tr><th>Display Name</th><th>Full Name</th><th class="hide-m">Phone</th><th>PIN</th><th>Status</th><th></th></tr></thead><tbody>` +
-      _accUsers.map(u => `<tr>
+    const ST = App.getSortState('users');
+    const sorted = App.sortData(_accUsers, ST ? ST.key : 'display_name', ST ? ST.dir : 'asc');
+    usersHtml = `<table class="tbl"><thead><tr>${App.sortTh('users','display_name','Display Name')}${App.sortTh('users','full_name','Full Name')}${App.sortTh('users','phone','Phone',' class="hide-m"')}<th>PIN</th>${App.sortTh('users','is_active','Status')}<th></th></tr></thead><tbody>` +
+      sorted.map(u => `<tr>
         <td style="font-weight:600">${esc(u.display_name)}</td>
         <td>${esc(u.full_name || '-')}</td>
         <td class="hide-m">${esc(u.phone || '-')}</td>
@@ -233,6 +235,7 @@ async function doCreateAccount() {
 let _auditEntries = [];
 let _auditPage = 1;
 let _auditTotal = 0;
+let _auditData = null;
 
 function renderAuditUI() {
   const ct = document.getElementById('audit-content');
@@ -271,6 +274,7 @@ async function loadAudit(page) {
     const data = await API.adminGetAuditLog(filters);
     _auditEntries = data.entries || [];
     _auditTotal = data.total || 0;
+    _auditData = data;
     renderAuditTable(results, data);
   } catch (e) { results.innerHTML = `<div class="empty-state"><div class="empty-text" style="color:var(--red)">${esc(e.message)}</div></div>`; }
 }
@@ -281,7 +285,9 @@ function renderAuditTable(ct, data) {
     ct.innerHTML = '<div class="empty-state"><div class="empty-icon">☰</div><div class="empty-text">No records found</div></div>';
     return;
   }
-  let rows = entries.map(e => {
+  const ST = App.getSortState('audit');
+  const sorted = ST ? App.sortData(entries, ST.key, ST.dir) : entries;
+  let rows = sorted.map(e => {
     const dt = e.created_at ? new Date(e.created_at).toLocaleString('en-GB', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-';
     return `<tr>
       <td style="font-size:10px;white-space:nowrap">${dt}</td>
@@ -304,12 +310,24 @@ function renderAuditTable(ct, data) {
 
   ct.innerHTML = `
     <div class="card" style="max-width:900px;padding:0;overflow-x:auto;margin-top:8px">
-      <table class="tbl"><thead><tr><th>Time</th><th>Type</th><th>Action</th><th class="hide-m">Account</th><th>Detail</th></tr></thead>
+      <table class="tbl"><thead><tr>${App.sortTh('audit','created_at','Time')}${App.sortTh('audit','event_type','Type')}${App.sortTh('audit','event_action','Action')}${App.sortTh('audit','account_id','Account',' class="hide-m"')}<th>Detail</th></tr></thead>
       <tbody>${rows}</tbody></table>
     </div>
     <div style="font-size:11px;color:var(--t3);margin-top:8px">${_auditTotal} records total</div>
     ${pager}`;
 }
+
+// ═══ D1: SORT EVENT LISTENER ═══
+document.addEventListener('spg-sort', (e) => {
+  if (e.detail.tableId === 'users' && _accDetail) {
+    const ct = document.getElementById('acct-detail-content');
+    if (ct) renderDetail(ct);
+  }
+  if (e.detail.tableId === 'audit' && _auditData) {
+    const results = document.getElementById('audit-results');
+    if (results) renderAuditTable(results, _auditData);
+  }
+});
 
 // ═══ GLOBAL EXPORT ═══
 window.Screens3 = {

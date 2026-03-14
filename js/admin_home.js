@@ -1,9 +1,9 @@
 /**
- * Version 1.1 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.3 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * admin_home.js — Admin Functions (Accounts, Permissions, Tier Access, Requests)
- * v1.1: B3 cache accounts/requests (no re-fetch on tab return)
+ * v1.3: D1 sortable accounts + requests tables
  * ═══════════════════════════════════════════
  */
 
@@ -45,7 +45,10 @@ async function loadAccounts(filters = {}) {
 }
 
 function renderAccountsTable(ct, data) {
-  const accs = data.accounts || [];
+  const ST = App.getSortState('accounts');
+  const sortKey = ST ? ST.key : 'display_label';
+  const sortDir = ST ? ST.dir : 'asc';
+  const accs = App.sortData(data.accounts || [], sortKey, sortDir);
   let rows = '';
   if (accs.length === 0) {
     rows = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--t3)">No accounts found</td></tr>';
@@ -67,7 +70,7 @@ function renderAccountsTable(ct, data) {
       </div>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
-      <table class="tbl"><thead><tr><th>Display Label</th><th class="hide-m">Type</th><th class="hide-m">Store</th><th>Tier</th><th>Status</th></tr></thead>
+      <table class="tbl"><thead><tr>${App.sortTh('accounts','display_label','Display Label')}${App.sortTh('accounts','account_type','Type',' class="hide-m"')}${App.sortTh('accounts','store_id','Store',' class="hide-m"')}${App.sortTh('accounts','tier_id','Tier')}${App.sortTh('accounts','status','Status')}</tr></thead>
       <tbody>${rows}</tbody></table>
     </div>
     <div style="font-size:11px;color:var(--t3);margin-top:8px">Total: ${data.total || accs.length} accounts</div>`;
@@ -145,10 +148,18 @@ async function savePermissions() {
       const [module_id, tier_id] = key.split('_');
       await API.adminUpdatePermission(module_id, tier_id, A.permDirty[key]);
     }
+    // C1: update cache directly → re-render (no re-fetch)
+    if (A.perms) {
+      for (const key of keys) {
+        const [module_id, tier_id] = key.split('_');
+        const mod = (A.perms.modules || []).find(m => m.module_id === module_id);
+        if (mod) mod.permissions[tier_id] = A.permDirty[key];
+      }
+    }
     A.permDirty = {};
     App.toast(`Saved ${keys.length} permission(s)`, 'success');
-    A._permLoaded = false;
-    loadPermissions();
+    const ct = document.getElementById('admin-content');
+    if (ct && A.perms) renderPermGrid(ct, A.perms);
   } catch (e) { App.toast(e.message, 'error'); }
   finally { App.hideLoader(); }
 }
@@ -228,10 +239,25 @@ async function saveTierAccess() {
         await API.adminRemoveModuleAccess(account_id, module_id);
       }
     }
+    // C2: update cache directly → re-render (no re-fetch)
+    if (A.tier) {
+      const ov = A.tier.overrides || [];
+      for (const key of keys) {
+        const [account_id, module_id] = key.split('|');
+        const tier = A.tierDirty[key];
+        const idx = ov.findIndex(o => o.account_id === account_id && o.module_id === module_id);
+        if (tier) {
+          if (idx >= 0) { ov[idx].module_tier = tier; ov[idx].is_active = true; }
+          else { ov.push({ account_id, module_id, module_tier: tier, is_active: true }); }
+        } else {
+          if (idx >= 0) ov.splice(idx, 1);
+        }
+      }
+    }
     A.tierDirty = {};
     App.toast(`Saved ${keys.length} override(s)`, 'success');
-    A._tierLoaded = false;
-    loadTierAccess();
+    const ct = document.getElementById('admin-content');
+    if (ct && A.tier) renderTierGrid(ct, A.tier);
   } catch (e) { App.toast(e.message, 'error'); }
   finally { App.hideLoader(); }
 }
@@ -260,7 +286,10 @@ async function loadRequests() {
 }
 
 function renderRequestsTable(ct, data) {
-  const reqs = data.requests || [];
+  const ST = App.getSortState('requests');
+  const sortKey = ST ? ST.key : 'display_name';
+  const sortDir = ST ? ST.dir : 'asc';
+  const reqs = App.sortData(data.requests || [], sortKey, sortDir);
   let rows = '';
   if (reqs.length === 0) {
     rows = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--t3)">No registration requests</td></tr>';
@@ -278,7 +307,7 @@ function renderRequestsTable(ct, data) {
   }
   ct.innerHTML = `
     <div class="card" style="padding:0;overflow:hidden">
-      <table class="tbl"><thead><tr><th>Name</th><th>Email</th><th class="hide-m">Store</th><th>Date</th><th>Status</th></tr></thead>
+      <table class="tbl"><thead><tr>${App.sortTh('requests','display_name','Name')}${App.sortTh('requests','email','Email')}${App.sortTh('requests','requested_store_id','Store',' class="hide-m"')}${App.sortTh('requests','submitted_at','Date')}${App.sortTh('requests','status','Status')}</tr></thead>
       <tbody>${rows}</tbody></table>
     </div>
     ${data.pending_count > 0 ? `<div style="font-size:11px;color:var(--orange);margin-top:8px">${data.pending_count} pending request(s)</div>` : ''}`;
@@ -302,6 +331,14 @@ function saveAdminTab(tab) {
     case 'tieraccess': saveTierAccess(); break;
   }
 }
+
+// ═══ D1: SORT EVENT LISTENER ═══
+document.addEventListener('spg-sort', (e) => {
+  const ct = document.getElementById('admin-content');
+  if (!ct) return;
+  if (e.detail.tableId === 'accounts' && A._accData) renderAccountsTable(ct, A._accData);
+  if (e.detail.tableId === 'requests' && A._regData) renderRequestsTable(ct, A._regData);
+});
 
 // ═══ GLOBAL EXPORT ═══
 window.Admin = {
