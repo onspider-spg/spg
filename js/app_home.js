@@ -1,9 +1,9 @@
 /**
- * Version 1.4.1 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.4.2 | 15 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * app_home.js — Router + State + Sidebar + Layout Helpers + Utilities
- * v1.4.1: Add Home Settings to sidebar menu
+ * v1.4.2: Profile popup add Store/Dept/Tier detail rows
  * ═══════════════════════════════════════════
  *
  * Route Map:
@@ -191,12 +191,19 @@ const App = (() => {
     const s = API.getSession();
     if (!s) return;
     const initial = (s.display_name || s.display_label || '?').charAt(0).toUpperCase();
-    showDialog(`<div class="popup-sheet" style="width:300px">
+    const tierNames = { T1:'Owner / CEO', T2:'Executive', T3:'Store Manager', T4:'Senior Staff', T5:'Staff', T6:'Junior Staff', T7:'Viewer' };
+    const row = (label, val) => `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bd2)"><span style="color:var(--t3);font-size:12px">${label}</span><span style="font-size:12px;font-weight:600">${esc(val)}</span></div>`;
+    showDialog(`<div class="popup-sheet" style="width:320px">
       <div class="popup-header"><div class="popup-title">Profile</div><button class="popup-close" onclick="App.closeDialog()">✕</button></div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
         <div class="topbar-avatar" style="width:40px;height:40px;font-size:16px">${esc(initial)}</div>
         <div><div style="font-size:14px;font-weight:700">${esc(s.display_name || s.display_label)}</div>
-        <div style="font-size:11px;color:var(--t3)">${esc(s.tier_id)} · ${esc(s.store_id || 'HQ')}</div></div>
+        <div style="font-size:11px;color:var(--t3)">${esc(s.display_label || '')}</div></div>
+      </div>
+      <div style="margin-bottom:14px">
+        ${row('Store', s.store_id || 'HQ')}
+        ${row('Dept', s.dept_id || '—')}
+        ${row('Tier', s.tier_id + ' · ' + (tierNames[s.tier_id] || s.tier_name || ''))}
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
         <button class="btn btn-primary btn-full" onclick="App.closeDialog();App.go('profile')">View Full Profile</button>
