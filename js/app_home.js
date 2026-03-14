@@ -1,9 +1,9 @@
 /**
- * Version 1.4 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.4.1 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * app_home.js — Router + State + Sidebar + Layout Helpers + Utilities
- * v1.4: DB-driven home permission system (hasHomePerm replaces tierLevel check)
+ * v1.4.1: Add Home Settings to sidebar menu
  * ═══════════════════════════════════════════
  *
  * Route Map:
@@ -365,7 +365,8 @@ const App = (() => {
         sdFlyItem('admin', 'accounts', 'Accounts') +
         sdFlyItem('admin', 'permissions', 'Permissions') +
         sdFlyItem('admin', 'tieraccess', 'Tier Access') +
-        sdFlyItem('admin', 'requests', 'Requests')
+        sdFlyItem('admin', 'requests', 'Requests') +
+        sdFlyItem('admin', 'home-settings', 'Home Settings')
       );
       html += sdGroup('master', '▤', 'Master Data',
         sdFlyItem('master', 'modules', 'Modules') +
@@ -497,6 +498,7 @@ const App = (() => {
       html += mobNav('admin', 'permissions', '⚙', 'Permissions');
       html += mobNav('admin', 'tieraccess', '⚙', 'Tier Access');
       html += mobNav('admin', 'requests', '⚙', 'Requests');
+      html += mobNav('admin', 'home-settings', '⚙', 'Home Settings');
       html += '<div style="height:8px"></div><div class="mob-sidebar-section">Master Data</div>';
       html += mobNav('master', 'modules', '▤', 'Modules');
       html += mobNav('master', 'stores', '▤', 'Stores');

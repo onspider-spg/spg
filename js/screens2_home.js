@@ -1,9 +1,9 @@
 /**
- * Version 1.5 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.5.1 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens2_home.js — Admin Shells (S9–S12)
- * v1.5: Permission-gated admin/master actions (super_admin for edit)
+ * v1.5.1: Add Home Settings tab support
  * ═══════════════════════════════════════════
  */
 
@@ -14,13 +14,14 @@
 // ════════════════════════════════
 function renderAdmin(p) {
   const tab = p?.tab || 'accounts';
-  const titles = { accounts: 'Accounts', permissions: 'Permissions', tieraccess: 'Tier Access Overrides', requests: 'Registration Requests' };
+  const titles = { accounts: 'Accounts', permissions: 'Permissions', tieraccess: 'Tier Access Overrides', requests: 'Registration Requests', 'home-settings': 'Home Settings' };
   const title = titles[tab] || 'Admin';
   const isSA = App.hasHomePerm('super_admin');
 
   let actions = '';
   if (tab === 'accounts') actions = `<button class="btn btn-primary btn-sm" onclick="App.go('acct-create')">+ Create Account</button>`;
   else if ((tab === 'permissions' || tab === 'tieraccess') && isSA) actions = `<button class="btn btn-primary btn-sm" onclick="Admin.saveAdminTab('${tab}')">Save Changes</button>`;
+  else if (tab === 'home-settings' && isSA) actions = `<button class="btn btn-primary btn-sm" onclick="Admin.saveAdminTab('${tab}')">Save Changes</button>`;
 
   const r = App.shell(`${App.toolbar(title, actions)}<div class="content"><div id="admin-content"><div class="skeleton" style="height:200px;margin-top:8px"></div></div></div>`);
   setTimeout(() => Admin.loadAdminTab(tab), 30);

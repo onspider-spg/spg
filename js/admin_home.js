@@ -1,9 +1,9 @@
 /**
- * Version 1.4 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.4.1 | 14 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
- * admin_home.js — Admin Functions (Accounts, Permissions, Tier Access, Requests)
- * v1.4: Permission/TierAccess read-only for non-super_admin
+ * admin_home.js — Admin Functions (Accounts, Permissions, Tier Access, Requests, Home Settings)
+ * v1.4.1: Add Home Settings screen (permission matrix + reference table)
  * ═══════════════════════════════════════════
  */
 
@@ -328,6 +328,7 @@ function loadAdminTab(tab) {
     case 'permissions': loadPermissions(); break;
     case 'tieraccess': loadTierAccess(); break;
     case 'requests': loadRequests(); break;
+    case 'home-settings': loadHomeSettings(); break;
   }
 }
 
@@ -335,7 +336,108 @@ function saveAdminTab(tab) {
   switch (tab) {
     case 'permissions': savePermissions(); break;
     case 'tieraccess': saveTierAccess(); break;
+    case 'home-settings': saveHomeSettings(); break;
   }
+}
+
+// ════════════════════════════════
+// HOME SETTINGS — permission matrix for home module only
+// ════════════════════════════════
+let _homePerms = null;
+let _homePermsDirty = {};
+
+async function loadHomeSettings() {
+  const ct = document.getElementById('admin-content');
+  if (!ct) return;
+  try {
+    const data = await API.adminGetPermissions();
+    const homeMod = (data.modules || []).find(m => m.module_id === 'home');
+    _homePerms = { tiers: data.tiers || [], permissions: homeMod?.permissions || {} };
+    _homePermsDirty = {};
+    renderHomeSettings(ct);
+  } catch (e) { App.toast(e.message, 'error'); }
+}
+
+function renderHomeSettings(ct) {
+  if (!_homePerms) return;
+  const tiers = _homePerms.tiers;
+  const perms = _homePerms.permissions;
+  const levels = ['no_access', 'view_only', 'edit', 'admin', 'super_admin'];
+  const isSA = App.hasHomePerm('super_admin');
+  const dis = isSA ? '' : ' disabled';
+
+  let rows = tiers.map(t => {
+    const val = _homePermsDirty[t.tier_id] || perms[t.tier_id] || 'no_access';
+    if (t.tier_level === 1) {
+      return `<tr><td style="font-weight:600">${esc(t.tier_id)} ${esc(t.tier_name)}</td><td style="color:var(--t3);font-size:11px">super_admin (ล็อกไว้)</td><td style="font-size:11px;color:var(--t3)">ทุกอย่าง</td></tr>`;
+    }
+    const opts = levels.map(l => `<option value="${l}"${val === l ? ' selected' : ''}>${l.replace(/_/g, ' ')}</option>`).join('');
+    const accessDesc = { 'no_access': 'ไม่เห็นเลย', 'view_only': 'Dashboard + Profile', 'edit': '+ Audit Trail', 'admin': '+ Admin Panel + Master (ดูอย่างเดียว)', 'super_admin': '+ แก้ไข Permissions / Master ทุกอย่าง' };
+    return `<tr>
+      <td style="font-weight:600">${esc(t.tier_id)} ${esc(t.tier_name)}</td>
+      <td><select class="fl" style="width:120px;font-size:10px;padding:3px 6px" onchange="Admin.markHomePermDirty('${esc(t.tier_id)}',this.value)"${dis}>${opts}</select></td>
+      <td style="font-size:11px;color:var(--t3)">${accessDesc[val] || ''}</td>
+    </tr>`;
+  }).join('');
+
+  const hint = isSA ? 'แก้ระดับสิทธิ์แล้วกด Save Changes' : 'View only — ต้องเป็น Super Admin เพื่อแก้ไข';
+
+  ct.innerHTML = `
+    <div style="font-size:11px;color:var(--t3);margin-bottom:10px">${hint}</div>
+    <div class="card" style="padding:0;overflow-x:auto;max-width:700px">
+      <table class="tbl">
+        <thead><tr><th>Tier</th><th>Access Level</th><th>สิ่งที่เห็น</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div id="home-perm-dirty-msg" style="font-size:11px;color:var(--orange);margin-top:8px;display:none">Unsaved changes</div>
+    <div class="sec-title" style="margin-top:24px">Screen Access Reference</div>
+    <div class="card" style="padding:0;overflow-x:auto;max-width:700px">
+      <table class="tbl">
+        <thead><tr><th>หน้า</th><th>view_only</th><th>edit</th><th>admin</th><th>super_admin</th></tr></thead>
+        <tbody>
+          <tr><td>Dashboard + Profile</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Module Launch</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Audit Trail</td><td>—</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Accounts / Requests</td><td>—</td><td>—</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Permissions / Tier Access</td><td>—</td><td>—</td><td>✅ ดู</td><td>✅ แก้</td></tr>
+          <tr><td>Master Data</td><td>—</td><td>—</td><td>✅ ดู</td><td>✅ แก้</td></tr>
+          <tr><td>Create Account</td><td>—</td><td>—</td><td>✅</td><td>✅</td></tr>
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function markHomePermDirty(tierId, value) {
+  _homePermsDirty[tierId] = value;
+  const msg = document.getElementById('home-perm-dirty-msg');
+  if (msg) msg.style.display = Object.keys(_homePermsDirty).length > 0 ? 'block' : 'none';
+  // Update access description live
+  const ct = document.getElementById('admin-content');
+  if (ct && _homePerms) {
+    _homePerms.permissions[tierId] = value;
+    renderHomeSettings(ct);
+  }
+}
+
+async function saveHomeSettings() {
+  const keys = Object.keys(_homePermsDirty);
+  if (keys.length === 0) { App.toast('No changes to save', 'info'); return; }
+  App.showLoader();
+  try {
+    for (const tier_id of keys) {
+      await API.adminUpdatePermission('home', tier_id, _homePermsDirty[tier_id]);
+    }
+    // Update local cache
+    if (_homePerms) {
+      for (const tier_id of keys) _homePerms.permissions[tier_id] = _homePermsDirty[tier_id];
+    }
+    _homePermsDirty = {};
+    App.toast(`Saved ${keys.length} permission(s)`, 'success');
+    const ct = document.getElementById('admin-content');
+    if (ct) renderHomeSettings(ct);
+  } catch (e) { App.toast(e.message, 'error'); }
+  finally { App.hideLoader(); }
 }
 
 // ═══ D1: SORT EVENT LISTENER ═══
@@ -353,6 +455,7 @@ window.Admin = {
   markPermDirty, savePermissions,
   markTierDirty, saveTierAccess,
   loadRequests,
+  markHomePermDirty, saveHomeSettings,
 };
 
 })();
