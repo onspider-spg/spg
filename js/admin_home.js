@@ -1,5 +1,5 @@
 /**
- * Version 1.4.1 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.4.2 | 16 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * admin_home.js — Admin Functions (Accounts, Permissions, Tier Access, Requests, Home Settings)
@@ -148,13 +148,13 @@ async function savePermissions() {
   App.showLoader();
   try {
     for (const key of keys) {
-      const [module_id, tier_id] = key.split('_');
+      const li = key.lastIndexOf('_'); const module_id = key.substring(0, li), tier_id = key.substring(li + 1);
       await API.adminUpdatePermission(module_id, tier_id, A.permDirty[key]);
     }
     // C1: update cache directly → re-render (no re-fetch)
     if (A.perms) {
       for (const key of keys) {
-        const [module_id, tier_id] = key.split('_');
+        const li = key.lastIndexOf('_'); const module_id = key.substring(0, li), tier_id = key.substring(li + 1);
         const mod = (A.perms.modules || []).find(m => m.module_id === module_id);
         if (mod) mod.permissions[tier_id] = A.permDirty[key];
       }
