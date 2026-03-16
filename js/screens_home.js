@@ -1,5 +1,5 @@
 /**
- * Version 1.3.1 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.3.2 | 16 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens_home.js — S1 Login, S3 Staff, S4 New Staff,
@@ -327,9 +327,9 @@ function fillDashboard(session, modules) {
   if (!grid) return;
 
   const colors = {
-    bc_order: { bg: 'var(--orange-bg)', c: 'var(--orange)', abbr: 'BC' },
-    sale_daily: { bg: 'var(--green-bg)', c: 'var(--green)', abbr: 'SD' },
-    finance: { bg: 'var(--acc2)', c: 'var(--acc)', abbr: 'FN' },
+    bakery_order:     { bg: 'var(--green-bg)',  c: 'var(--green)',  abbr: 'BA' },
+    saledaily_report: { bg: 'var(--blue-bg)',   c: 'var(--blue)',   abbr: 'SA' },
+    finance:          { bg: 'var(--acc2)',       c: 'var(--acc)',    abbr: 'FN' },
   };
 
   grid.innerHTML = modules.filter(m => m.is_accessible).map(m => {
