@@ -328,7 +328,7 @@ function fillDashboard(session, modules) {
   if (!grid) return;
 
   const colors = {
-    bakery_order:     { bg: 'var(--green-bg)',  c: 'var(--green)',  abbr: 'BA' },
+    bakery_order:     { bg: 'var(--green-bg)',  c: 'var(--green)',  abbr: 'BC' },
     saledaily_report: { bg: 'var(--blue-bg)',   c: 'var(--blue)',   abbr: 'SA' },
     finance:          { bg: 'var(--acc2)',       c: 'var(--acc)',    abbr: 'FN' },
   };
