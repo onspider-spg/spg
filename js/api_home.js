@@ -19,6 +19,7 @@ const API = (() => {
     return json.data;
   }
 
+  let _sesCache = null;
   function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
   function setToken(token) { if (token) localStorage.setItem(TOKEN_KEY, token); }
   function clearToken() { localStorage.removeItem(TOKEN_KEY); }
@@ -26,10 +27,11 @@ const API = (() => {
     const s = { token: data.session_id, account_id: data.account_id, account_type: data.account_type, display_label: data.display_label, tier_id: data.tier_id, tier_name: data.tier_name, store_id: data.store_id, dept_id: data.dept_id, user_id: data.user_id || '', display_name: data.display_name || '', full_name: data.full_name || '', expires_at: data.expires_at };
     localStorage.setItem(SESSION_KEY, JSON.stringify(s));
     setToken(data.session_id);
+    _sesCache = s;
     return s;
   }
-  function getSession() { try { const raw = localStorage.getItem(SESSION_KEY); if (!raw) return null; const data = JSON.parse(raw); if (data.expires_at && new Date(data.expires_at) < new Date()) { clearSession(); return null; } return data; } catch { return null; } }
-  function clearSession() { localStorage.removeItem(SESSION_KEY); localStorage.removeItem(ACCOUNT_KEY); clearToken(); }
+  function getSession() { if (_sesCache) return _sesCache; try { const raw = localStorage.getItem(SESSION_KEY); if (!raw) return null; const data = JSON.parse(raw); if (data.expires_at && new Date(data.expires_at) < new Date()) { clearSession(); return null; } _sesCache = data; return data; } catch { return null; } }
+  function clearSession() { _sesCache = null; localStorage.removeItem(SESSION_KEY); localStorage.removeItem(ACCOUNT_KEY); clearToken(); }
   function saveAccountTemp(data) { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(data)); }
   function getAccountTemp() { try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY)); } catch { return null; } }
   function tb(extra = {}) { return { token: getToken(), ...extra }; }

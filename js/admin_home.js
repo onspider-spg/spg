@@ -13,7 +13,7 @@ const esc = App.esc;
 
 // ═══ STATE ═══
 const A = {
-  accounts: null, _accLoaded: false, _accLoading: false, _accData: null,
+  accounts: null, _accLoaded: false, _accLoading: false, _accData: null, _accPage: 1,
   perms: null, _permLoaded: false, _permLoading: false,
   tier: null, _tierLoaded: false, _tierLoading: false,
   regs: null, _regLoaded: false, _regLoading: false, _regData: null,
@@ -28,15 +28,16 @@ async function loadAccounts(filters = {}) {
   if (A._accLoading) return;
   const ct = document.getElementById('admin-content');
   if (!ct) return;
-  // B3: use cache when returning to tab (no explicit filter)
-  const hasFilter = filters.status_filter || filters.search;
+  // B3: use cache when returning to tab (no explicit filter/page)
+  const hasFilter = filters.status_filter || filters.search || filters.page;
   if (A._accLoaded && A._accData && !hasFilter) {
     renderAccountsTable(ct, A._accData);
     return;
   }
   A._accLoading = true;
+  if (filters.page) A._accPage = filters.page;
   try {
-    const data = await API.adminGetAccounts(filters);
+    const data = await API.adminGetAccounts({ ...filters, page: A._accPage });
     A.accounts = data.accounts;
     A._accData = data;
     A._accLoaded = true;
@@ -74,14 +75,22 @@ function renderAccountsTable(ct, data) {
       <table class="tbl"><thead><tr>${App.sortTh('accounts','display_label','Display Label')}${App.sortTh('accounts','account_type','Type',' class="hide-m"')}${App.sortTh('accounts','store_id','Store',' class="hide-m"')}${App.sortTh('accounts','tier_id','Tier')}${App.sortTh('accounts','status','Status')}</tr></thead>
       <tbody>${rows}</tbody></table>
     </div>
-    <div style="font-size:11px;color:var(--t3);margin-top:8px">Total: ${data.total || accs.length} accounts</div>`;
+    <div style="font-size:11px;color:var(--t3);margin-top:8px">Total: ${data.total || accs.length} accounts</div>
+    ${(data.pages || 1) > 1 ? `<div style="display:flex;gap:8px;justify-content:center;margin-top:8px">${A._accPage > 1 ? `<a class="lk" onclick="Admin.loadAccountsPage(${A._accPage - 1})">← Prev</a>` : ''}<span style="font-size:11px;color:var(--t3)">Page ${A._accPage} / ${data.pages}</span>${A._accPage < data.pages ? `<a class="lk" onclick="Admin.loadAccountsPage(${A._accPage + 1})">Next →</a>` : ''}</div>` : ''}`;
 }
 
 function filterAccounts() {
   const status_filter = document.getElementById('f-acc-status')?.value || 'all';
   const search = document.getElementById('f-acc-search')?.value || '';
   A._accLoaded = false;
+  A._accPage = 1;
   loadAccounts({ status_filter, search });
+}
+
+function loadAccountsPage(page) {
+  A._accLoaded = false;
+  A._accPage = page;
+  loadAccounts({ page });
 }
 
 // ════════════════════════════════
@@ -454,7 +463,7 @@ document.addEventListener('spg-sort', (e) => {
 // ═══ GLOBAL EXPORT ═══
 window.Admin = {
   loadAdminTab, saveAdminTab,
-  filterAccounts,
+  filterAccounts, loadAccountsPage,
   markPermDirty, savePermissions,
   markTierDirty, saveTierAccess,
   loadRequests,

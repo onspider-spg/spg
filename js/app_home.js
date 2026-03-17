@@ -226,9 +226,7 @@ const App = (() => {
   // ═══ ESCAPE HTML ═══
   function esc(str) {
     if (str == null) return '';
-    const d = document.createElement('div');
-    d.textContent = String(str);
-    return d.innerHTML;
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   // ═══ SHARED LAYOUT HELPERS (A1: single source for all screens) ═══
