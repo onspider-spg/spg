@@ -1,8 +1,9 @@
 /**
- * Version 1.4.4 | 17 MAR 2026 | Siam Palette Group
+ * Version 1.4.5 | 17 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * admin_home.js — Admin Functions (Accounts, Permissions, Tier Access, Requests, Home Settings)
+ * v1.4.5: Add review dialog for Registration Requests (Approve/Reject)
  * v1.4.4: Add pagination controls for Accounts tab
  * v1.4.3: Fix replace global, reuse perm cache for Home Settings
  * v1.4.1: Add Home Settings screen (permission matrix + reference table)
@@ -313,7 +314,7 @@ function renderRequestsTable(ct, data) {
   } else {
     rows = reqs.map(r => {
       const dt = r.submitted_at ? new Date(r.submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
-      return `<tr>
+      return `<tr style="cursor:pointer" onclick="Admin.reviewRequest('${esc(r.request_id)}')">
         <td style="font-weight:600">${esc(r.display_name || r.full_name)}</td>
         <td>${esc(r.email || r.username)}</td>
         <td class="hide-m">${esc(r.requested_store_id || '-')}</td>
@@ -328,6 +329,94 @@ function renderRequestsTable(ct, data) {
       <tbody>${rows}</tbody></table>
     </div>
     ${data.pending_count > 0 ? `<div style="font-size:11px;color:var(--orange);margin-top:8px">${data.pending_count} pending request(s)</div>` : ''}`;
+}
+
+// ════════════════════════════════
+// REQUESTS — review dialog + approve/reject
+// ════════════════════════════════
+async function reviewRequest(requestId) {
+  const r = (A._regData?.requests || []).find(x => x.request_id === requestId);
+  if (!r) return;
+  const row = (label, val) => `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd2)"><span style="color:var(--t3);font-size:12px">${label}</span><span style="font-size:12px;font-weight:600;text-align:right;max-width:60%">${esc(val || '-')}</span></div>`;
+  const dt = r.submitted_at ? new Date(r.submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
+  const stsClass = r.status === 'approved' ? 'sts-ok' : r.status === 'rejected' ? 'sts-err' : 'sts-warn';
+
+  let actions = '';
+  if (r.status === 'pending') {
+    const stores = await App.getStoresCache();
+    const storeOpts = stores.filter(s => s.store_id !== 'ALL').map(s =>
+      `<option value="${esc(s.store_id)}"${s.store_id === r.requested_store_id ? ' selected' : ''}>${esc(s.store_name)}</option>`
+    ).join('');
+    actions = `
+      <div style="margin-top:14px;border-top:2px solid var(--bd2);padding-top:14px">
+        <div style="font-weight:700;margin-bottom:10px">Review</div>
+        <label style="font-size:11px;color:var(--t3)">Assign Tier</label>
+        <select id="rev-tier" class="fl" style="margin-bottom:8px">
+          <option value="T3">T3 — Store Manager</option>
+          <option value="T4">T4 — Senior Staff</option>
+          <option value="T5">T5 — Staff</option>
+          <option value="T6" selected>T6 — Junior Staff</option>
+          <option value="T7">T7 — Viewer</option>
+        </select>
+        <label style="font-size:11px;color:var(--t3)">Assign Store</label>
+        <select id="rev-store" class="fl" style="margin-bottom:8px">
+          <option value="">— ไม่ระบุ —</option>
+          ${storeOpts}
+        </select>
+        <label style="font-size:11px;color:var(--t3)">Admin Note</label>
+        <textarea id="rev-note" class="fl" rows="2" placeholder="เหตุผล (บังคับกรณี Reject)" style="margin-bottom:12px;width:100%;box-sizing:border-box"></textarea>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" style="flex:1" onclick="Admin.submitReview('${esc(r.request_id)}','approve')">Approve</button>
+          <button class="btn btn-danger" style="flex:1" onclick="Admin.submitReview('${esc(r.request_id)}','reject')">Reject</button>
+        </div>
+      </div>`;
+  } else {
+    const revDt = r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-';
+    actions = `
+      <div style="margin-top:14px;border-top:2px solid var(--bd2);padding-top:14px">
+        ${row('Reviewed by', r.reviewed_by)}
+        ${row('Reviewed at', revDt)}
+        ${r.review_note ? row('Note', r.review_note) : ''}
+      </div>`;
+  }
+
+  App.showDialog(`<div class="popup-sheet" style="width:360px">
+    <div class="popup-header"><div class="popup-title">Registration Request</div><button class="popup-close" onclick="App.closeDialog()">✕</button></div>
+    ${row('Name', r.display_name || r.full_name)}
+    ${row('Full Name', r.full_name)}
+    ${row('Email', r.email)}
+    ${row('Username', r.username)}
+    ${row('Phone', r.phone)}
+    ${row('Store', r.requested_store_id)}
+    ${row('Dept', r.requested_dept_id)}
+    ${r.request_note ? row('Note', r.request_note) : ''}
+    ${row('Date', dt)}
+    ${row('Status', `<span class="sts ${stsClass}">${r.status}</span>`)}
+    ${actions}
+  </div>`);
+}
+
+async function submitReview(requestId, action) {
+  const note = document.getElementById('rev-note')?.value.trim() || '';
+  if (action === 'reject' && !note) {
+    App.toast('กรุณาระบุเหตุผลในการ Reject', 'error');
+    return;
+  }
+  const payload = { request_id: requestId, action, admin_note: note };
+  if (action === 'approve') {
+    payload.tier_id = document.getElementById('rev-tier')?.value || 'T6';
+    payload.store_id = document.getElementById('rev-store')?.value || '';
+  }
+  App.showLoader();
+  try {
+    await API.adminReviewRegistration(payload);
+    App.closeDialog();
+    App.toast(action === 'approve' ? 'Approved สำเร็จ' : 'Rejected สำเร็จ', 'success');
+    A._regLoaded = false;
+    A._regData = null;
+    loadRequests();
+  } catch (e) { App.toast(e.message, 'error'); }
+  finally { App.hideLoader(); }
 }
 
 // ════════════════════════════════
@@ -467,7 +556,7 @@ window.Admin = {
   filterAccounts, loadAccountsPage,
   markPermDirty, savePermissions,
   markTierDirty, saveTierAccess,
-  loadRequests,
+  loadRequests, reviewRequest, submitReview,
   markHomePermDirty, saveHomeSettings,
 };
 
