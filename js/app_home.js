@@ -1,8 +1,9 @@
 /**
- * Version 1.4.4 | 17 MAR 2026 | Siam Palette Group
+ * Version 1.4.5 | 17 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * app_home.js — Router + State + Sidebar + Layout Helpers + Utilities
+ * v1.4.5: Optimize esc() from DOM-based to string replace
  * v1.4.4: Skip redundant buildSidebar on dashboard initial load
  * v1.4.3: Fix hasHomePerm fallback to tier when bundle not loaded
  * ═══════════════════════════════════════════

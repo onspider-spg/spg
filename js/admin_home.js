@@ -1,8 +1,9 @@
 /**
- * Version 1.4.3 | 17 MAR 2026 | Siam Palette Group
+ * Version 1.4.4 | 17 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * admin_home.js — Admin Functions (Accounts, Permissions, Tier Access, Requests, Home Settings)
+ * v1.4.4: Add pagination controls for Accounts tab
  * v1.4.3: Fix replace global, reuse perm cache for Home Settings
  * v1.4.1: Add Home Settings screen (permission matrix + reference table)
  * ═══════════════════════════════════════════

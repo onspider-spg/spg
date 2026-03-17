@@ -1,7 +1,8 @@
 /**
- * Version 1.3 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.3.1 | 17 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module — api_home.js
+ * v1.3.1: Add in-memory session cache to reduce localStorage parse
  * v1.3: add account detail, create account, audit trail
  * ═══════════════════════════════════════════
  */
