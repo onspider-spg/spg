@@ -32,7 +32,7 @@ function renderLogin() {
       <input class="login-inp" id="inp-pass" type="password" placeholder="••••••••" autocomplete="current-password">
       <div class="error-msg" id="login-error"></div>
       <button class="login-btn" id="btn-login" onclick="Screens.doLogin()">Sign In</button>
-      <div class="login-link" onclick="App.go('register')">Register</div>
+      <!-- Register via direct link: #register -->
     </div>
   </div>`);
 }
