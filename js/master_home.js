@@ -1,8 +1,9 @@
 /**
- * Version 1.3 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.3.1 | 17 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * master_home.js — Master Data (Modules, Stores, Departments)
+ * v1.3.1: Fix replace global for status options
  * v1.3: Read-only mode for non-super_admin (modules/stores/depts)
  * ═══════════════════════════════════════════
  */
@@ -37,7 +38,7 @@ function renderModulesTable(ct) {
   const mods = App.sortData(M.modules || [], 'module_id', 'asc');
   const isSA = App.hasHomePerm('super_admin');
   const dis = isSA ? '' : ' disabled';
-  const statusOpts = ['active', 'coming_soon', 'disabled'].map(s => `<option value="${s}">${s.replace('_', ' ')}</option>`).join('');
+  const statusOpts = ['active', 'coming_soon', 'disabled'].map(s => `<option value="${s}">${s.replace(/_/g, ' ')}</option>`).join('');
   let rows = mods.map(m => {
     const selHtml = statusOpts.replace(`value="${m.status}"`, `value="${m.status}" selected`);
     return `<tr>

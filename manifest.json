@@ -1,0 +1,15 @@
+{
+  "name": "SPG App — Home",
+  "short_name": "SPG",
+  "start_url": "/spg/",
+  "display": "standalone",
+  "background_color": "#fdfaf4",
+  "theme_color": "#fdfaf4",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}

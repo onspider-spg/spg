@@ -1,8 +1,9 @@
 /**
- * Version 1.2 | 14 MAR 2026 | Siam Palette Group
+ * Version 1.2.1 | 17 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens3_home.js — Account Detail, Create Account, Audit Trail
+ * v1.2.1: Fix admin Edit User PIN validation to 6 digits
  * v1.2: D1 sortable users + audit tables
  * ═══════════════════════════════════════════
  */
@@ -162,7 +163,7 @@ async function doSaveUser(userId) {
   btn.disabled = true; btn.textContent = 'Saving...';
   const data = { user_id: userId, display_name: document.getElementById('eu-nick')?.value.trim(), full_name: document.getElementById('eu-full')?.value.trim(), phone: document.getElementById('eu-phone')?.value.trim(), is_active: document.getElementById('eu-active')?.value === 'true' };
   const pin = document.getElementById('eu-pin')?.value.trim();
-  if (pin) { if (pin.length < 4) { App.showError('eu-error', 'PIN must be at least 4 digits'); btn.disabled = false; btn.textContent = 'Save'; return; } data.new_pin = pin; }
+  if (pin) { if (!/^\d{6}$/.test(pin)) { App.showError('eu-error', 'PIN ต้องเป็นตัวเลข 6 หลัก'); btn.disabled = false; btn.textContent = 'Save'; return; } data.new_pin = pin; }
   try {
     await API.adminUpdateUser(data);
     App.closeDialog();

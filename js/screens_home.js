@@ -1,9 +1,10 @@
 /**
- * Version 1.3.2 | 16 MAR 2026 | Siam Palette Group
+ * Version 1.3.3 | 17 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * screens_home.js — S1 Login, S3 Staff, S4 New Staff,
  *   S5 Dashboard, S6 Profile, S7 Register
+ * v1.3.3: Sync topbar/sidebar after profile update
  * v1.3.1: fix App.App.showError/hideError double prefix
  * ═══════════════════════════════════════════
  */
@@ -463,6 +464,13 @@ async function doSaveProfile() {
     // Update session in localStorage too
     const s = API.getSession();
     if (s) { s.display_name = display_name; localStorage.setItem('spg_session', JSON.stringify(s)); }
+    // Bug #4: sync topbar + sidebar with new display name
+    if (App.S.session) App.S.session.display_name = display_name;
+    const tbName = document.querySelector('.topbar-user .hide-m');
+    if (tbName) tbName.textContent = display_name;
+    const tbAvatar = document.querySelector('.topbar-avatar');
+    if (tbAvatar) tbAvatar.textContent = (display_name || '?').charAt(0).toUpperCase();
+    App.buildSidebar();
   } catch (e) {
     App.showError('pf-edit-error', e.message || 'Update failed');
     btn.disabled = false; btn.textContent = 'Save';

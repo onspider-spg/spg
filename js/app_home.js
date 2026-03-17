@@ -1,8 +1,9 @@
 /**
- * Version 1.4.3 | 15 MAR 2026 | Siam Palette Group
+ * Version 1.4.4 | 17 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * app_home.js — Router + State + Sidebar + Layout Helpers + Utilities
+ * v1.4.4: Skip redundant buildSidebar on dashboard initial load
  * v1.4.3: Fix hasHomePerm fallback to tier when bundle not loaded
  * ═══════════════════════════════════════════
  *
@@ -124,8 +125,9 @@ const App = (() => {
     appEl().innerHTML = def.render(params);
 
     // Build sidebar for authenticated pages (has <nav class="sidebar"> in DOM)
+    // Bug #7: skip first build on dashboard if bundle not loaded — loadBundle() will rebuild with real data
     const sidebarEl = appEl().querySelector('.sidebar');
-    if (sidebarEl) {
+    if (sidebarEl && (route !== 'dashboard' || S._bundleLoaded)) {
       buildSidebar(); // setupFlyout() called inside
     }
 

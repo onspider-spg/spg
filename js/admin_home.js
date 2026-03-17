@@ -1,8 +1,9 @@
 /**
- * Version 1.4.2 | 16 MAR 2026 | Siam Palette Group
+ * Version 1.4.3 | 17 MAR 2026 | Siam Palette Group
  * ═══════════════════════════════════════════
  * SPG App — Home Module
  * admin_home.js — Admin Functions (Accounts, Permissions, Tier Access, Requests, Home Settings)
+ * v1.4.3: Fix replace global, reuse perm cache for Home Settings
  * v1.4.1: Add Home Settings screen (permission matrix + reference table)
  * ═══════════════════════════════════════════
  */
@@ -120,7 +121,7 @@ function renderPermGrid(ct, data) {
         cells += `<td style="text-align:center;color:var(--t3);font-size:11px">super_admin</td>`;
       } else {
         const key = `${m.module_id}_${t.tier_id}`;
-        const opts = levels.map(l => `<option value="${l}"${val === l ? ' selected' : ''}>${l.replace('_', ' ')}</option>`).join('');
+        const opts = levels.map(l => `<option value="${l}"${val === l ? ' selected' : ''}>${l.replace(/_/g, ' ')}</option>`).join('');
         cells += `<td><select class="fl" style="width:100px;font-size:10px;padding:3px 6px" onchange="Admin.markPermDirty('${esc(key)}',this.value)"${dis}>${opts}</select></td>`;
       }
     });
@@ -350,7 +351,9 @@ async function loadHomeSettings() {
   const ct = document.getElementById('admin-content');
   if (!ct) return;
   try {
-    const data = await API.adminGetPermissions();
+    // Bug #6: reuse cached permissions if already loaded (same API as Permissions tab)
+    const data = A._permLoaded && A.perms ? A.perms : await API.adminGetPermissions();
+    if (!A._permLoaded) { A.perms = data; A._permLoaded = true; }
     const homeMod = (data.modules || []).find(m => m.module_id === 'home');
     _homePerms = { tiers: data.tiers || [], permissions: homeMod?.permissions || {} };
     _homePermsDirty = {};
