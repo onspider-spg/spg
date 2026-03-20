@@ -49,7 +49,10 @@ async function doLogin() {
 
   try {
     const data = await API.login(user, pass);
-    if (data.account_type === 'individual') {
+    if (data.store_selection_required) {
+      API.saveAccountTemp({ ...data, _storeSelect: true });
+      App.go('store-select');
+    } else if (data.account_type === 'individual') {
       API.saveSession(data);
       App.go('dashboard');
     } else {
@@ -304,7 +307,7 @@ function renderDashboard() {
     <div class="content">
       <div style="margin-bottom:20px">
         <div style="font-size:var(--fs-body);font-weight:700;margin-bottom:var(--sp-xs)" id="dash-greeting">Welcome, ${esc(s.display_name || s.display_label)}</div>
-        <div style="font-size:11px;color:var(--t3)" id="dash-meta">${esc(s.tier_id)} · ${esc(s.store_id || 'HQ')}</div>
+        <div style="font-size:11px;color:var(--t3)" id="dash-meta">${esc(s.position_id ? s.position_name : s.tier_id)} · ${esc(s.store_id || 'HQ')}</div>
       </div>
       <div class="sec-title">Modules</div>
       <div class="mod-grid" id="mod-grid">
@@ -321,7 +324,7 @@ function fillDashboard(session, modules) {
   const greet = document.getElementById('dash-greeting');
   const meta = document.getElementById('dash-meta');
   if (greet) greet.textContent = `Welcome, ${session.display_name || ''}`;
-  if (meta) meta.textContent = `${session.tier_id} · ${session.tier_name || ''} · ${session.store_id || 'HQ'}`;
+  if (meta) meta.textContent = `${session.position_id ? session.position_name : session.tier_id} · ${session.store_id || 'HQ'}`;
 
   // Render module cards
   const grid = document.getElementById('mod-grid');
@@ -409,7 +412,7 @@ function renderProfileCard(d) {
   card.innerHTML = `
     <div class="profile-header">
       <div class="profile-avatar" style="background:${avatarBg};color:${avatarColor}">${esc(initial)}</div>
-      <div><div class="profile-name">${esc(d.display_name || d.full_name)}</div><div class="profile-meta">${esc(d.tier_id)} · ${esc(d.tier_name || '')} · ${esc(d.store_id || 'HQ')}</div></div>
+      <div><div class="profile-name">${esc(d.display_name || d.full_name)}</div><div class="profile-meta">${esc(d.position_id ? d.position_name : d.tier_id)} · ${esc(d.store_id || 'HQ')}</div></div>
       <div class="profile-badge" style="background:${badgeBg};color:${badgeColor}">${badgeText}</div>
     </div>
     ${isGroup ? `<div style="padding:8px 12px;background:var(--bg3);border-radius:var(--rd);font-size:11px;color:var(--t2);margin-bottom:14px">Account: <strong>${esc(d.display_label)}</strong></div>` : ''}
@@ -419,7 +422,7 @@ function renderProfileCard(d) {
     ${!isGroup && d.email ? `<div class="fg"><label class="lb">Email / Username</label><div class="profile-field-readonly">${esc(d.email || d.username)}</div></div>` : ''}
     <div class="profile-grid">
       <div><div class="lb">Store</div><div class="profile-field-readonly">${esc(d.store_name_th || d.store_id || '-')}</div></div>
-      <div><div class="lb">Tier</div><div class="profile-field-readonly">${esc(d.tier_id)} · ${esc(d.tier_name || '')}</div></div>
+      <div><div class="lb">Position</div><div class="profile-field-readonly">${esc(d.position_id ? d.position_name : (d.tier_id + ' · ' + (d.tier_name || '')))}</div></div>
     </div>
     <div style="display:flex;gap:8px;margin-top:var(--sp-md)">
       <button class="btn btn-primary btn-sm" onclick="Screens.showEditProfile()">Edit Profile</button>
@@ -535,6 +538,51 @@ async function doChangePin() {
 }
 
 
+// ════════════════════════════════
+// S8: STORE SELECTOR (multi-store login)
+// ════════════════════════════════
+function renderStoreSelect() {
+  const acc = API.getAccountTemp();
+  if (!acc || !acc._storeSelect) return renderLogin();
+  const assignments = acc.assignments || [];
+  const cards = assignments.map(a => {
+    return `<div class="staff-card" onclick="Screens.doSelectStore('${esc(a.store_id)}')" style="cursor:pointer">
+      <div class="staff-avatar" style="background:var(--acc2);color:var(--acc);font-size:14px">${esc((a.store_id || '?').substring(0, 2))}</div>
+      <div>
+        <div class="staff-name">${esc(a.store_id)}</div>
+        <div class="staff-hint">${esc(a.position_name || '')}${a.dept_id ? ' · ' + esc(a.dept_id) : ''}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return shellLogin(`
+    <div class="login-header">
+      <button class="login-back" onclick="API.clearSession();App.go('login')">←</button>
+      <div class="login-header-title">Select Store</div>
+    </div>
+    <div style="padding:20px;flex:1">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:12px">${esc(acc.display_name || acc.display_label || '')} — Please select a store</div>
+      <div id="store-grid">${cards}</div>
+    </div>`);
+}
+
+async function doSelectStore(storeId) {
+  const acc = API.getAccountTemp();
+  if (!acc || !acc.temp_token) { App.toast('Session expired, please login again', 'error'); App.go('login'); return; }
+  App.showLoader();
+  try {
+    const data = await API.selectStore(acc.temp_token, storeId);
+    API.saveSession(data);
+    App.hideLoader();
+    App.go('dashboard');
+  } catch (e) {
+    App.hideLoader();
+    App.toast(e.message || 'Failed to select store', 'error');
+    if (e.key === 'INVALID_TEMP_TOKEN') App.go('login');
+  }
+}
+
+
 // ═══ LOGOUT ═══
 async function doLogout() {
   App.showLoader();
@@ -561,6 +609,7 @@ return {
   showPinPopup, submitPin, showSetPinPopup, submitSetPin,
   renderNewStaff, doCreateStaff,
   renderDashboard, fillDashboard, launchModule,
+  renderStoreSelect, doSelectStore,
   renderProfile, loadProfile,
   showEditProfile, doSaveProfile,
   showChangePasswordPopup, doChangePassword,

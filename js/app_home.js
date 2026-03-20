@@ -43,11 +43,11 @@ const App = (() => {
   function hasHomePerm(minLevel) {
     // If homePermission loaded from bundle → use it
     if (S.homePermission) return (PERM_LEVELS[S.homePermission] || 0) >= (PERM_LEVELS[minLevel] || 0);
-    // Fallback: use session tier (before bundle loads, or if missing)
+    // Fallback: use session position_level (or tier if no position)
     const s = API.getSession();
     if (!s) return false;
-    const tl = parseInt((s.tier_id || 'T9').replace('T', ''));
-    const fallback = tl === 1 ? 'super_admin' : tl === 2 ? 'admin' : tl <= 4 ? 'edit' : 'view_only';
+    const pl = s.position_id ? (s.position_level || 99) : parseInt((s.tier_id || 'T9').replace('T', ''));
+    const fallback = pl === 1 ? 'super_admin' : pl === 2 ? 'admin' : pl <= 4 ? 'edit' : 'view_only';
     return (PERM_LEVELS[fallback] || 0) >= (PERM_LEVELS[minLevel] || 0);
   }
 
@@ -60,6 +60,7 @@ const App = (() => {
     'login':          { render: () => Screens.renderLogin(),            onLoad: null },
     'register':       { render: () => Screens.renderRegister(),         onLoad: () => Screens.loadRegisterDropdowns() },
     'staff-select':   { render: () => Screens.renderStaffSelect(),      onLoad: () => Screens.loadStaffList() },
+    'store-select':   { render: () => Screens.renderStoreSelect(),      onLoad: null },
     'new-staff':      { render: () => Screens.renderNewStaff(),         onLoad: null },
     'dashboard':      { render: () => Screens.renderDashboard(),        onLoad: () => loadBundle() },
     'profile':        { render: () => Screens.renderProfile(),          onLoad: () => Screens.loadProfile() },
@@ -100,7 +101,7 @@ const App = (() => {
     const pub = ['login', 'register'];
     if (!pub.includes(route)) {
       const session = API.getSession();
-      if (route === 'staff-select' || route === 'new-staff') {
+      if (route === 'staff-select' || route === 'new-staff' || route === 'store-select') {
         if (!API.getAccountTemp()) return go('login');
       } else if (!session) {
         return go('login');
@@ -203,8 +204,8 @@ const App = (() => {
     const s = API.getSession();
     if (!s) return;
     const initial = (s.display_name || s.display_label || '?').charAt(0).toUpperCase();
-    const tierNames = { T1:'Owner / CEO', T2:'Executive', T3:'Store Manager', T4:'Senior Staff', T5:'Staff', T6:'Junior Staff', T7:'Viewer' };
     const row = (label, val) => `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bd2)"><span style="color:var(--t3);font-size:12px">${label}</span><span style="font-size:12px;font-weight:600">${esc(val)}</span></div>`;
+    const posLabel = s.position_id ? s.position_name : (s.tier_name || s.tier_id || '');
     showDialog(`<div class="popup-sheet" style="width:320px">
       <div class="popup-header"><div class="popup-title">Profile</div><button class="popup-close" onclick="App.closeDialog()">✕</button></div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
@@ -215,13 +216,52 @@ const App = (() => {
       <div style="margin-bottom:14px">
         ${row('Store', s.store_id || 'HQ')}
         ${row('Dept', s.dept_id || '—')}
-        ${row('Tier', s.tier_id + ' · ' + (tierNames[s.tier_id] || s.tier_name || ''))}
+        ${row('Position', posLabel)}
       </div>
       <div style="display:flex;flex-direction:column;gap:6px">
         <button class="btn btn-primary btn-full" onclick="App.closeDialog();App.go('profile')">View Full Profile</button>
         <button class="btn btn-outline btn-full" style="color:var(--red);border-color:var(--red)" onclick="App.closeDialog();Screens.doLogout()">Log out</button>
       </div>
     </div>`);
+  }
+
+  // ═══ STORE SWITCHER (v2.0) ═══
+  function showStoreSwitcher() {
+    const s = API.getSession();
+    if (!s || !s.store_assignments || s.store_assignments.length < 2) return;
+    const cards = s.store_assignments.map(a => {
+      const active = a.store_id === s.store_id ? ' style="border:2px solid var(--acc);background:var(--acc2)"' : '';
+      return `<div class="staff-card"${active} onclick="App.doSwitchStore('${esc(a.store_id)}')" style="cursor:pointer;margin-bottom:6px">
+        <div class="staff-avatar" style="background:var(--acc2);color:var(--acc);font-size:12px;width:32px;height:32px">${esc((a.store_id || '?').substring(0, 2))}</div>
+        <div><div style="font-size:12px;font-weight:600">${esc(a.store_id)}</div>
+        <div style="font-size:10px;color:var(--t3)">${esc(a.position_name || '')}${a.dept_id ? ' · ' + esc(a.dept_id) : ''}</div></div>
+        ${a.store_id === s.store_id ? '<span style="margin-left:auto;font-size:10px;color:var(--acc)">Current</span>' : ''}
+      </div>`;
+    }).join('');
+    showDialog(`<div class="popup-sheet" style="width:340px">
+      <div class="popup-header"><div class="popup-title">Switch Store</div><button class="popup-close" onclick="App.closeDialog()">✕</button></div>
+      <div style="margin-bottom:8px">${cards}</div>
+    </div>`);
+  }
+
+  async function doSwitchStore(storeId) {
+    const s = API.getSession();
+    if (!s || storeId === s.store_id) { closeDialog(); return; }
+    closeDialog();
+    showLoader();
+    try {
+      // Re-validate session and switch store context
+      const data = await API.selectStore(s.token, storeId);
+      API.saveSession(data);
+      // Reset bundle to reload with new store context
+      S.session = null; S.modules = null; S.homePermission = null;
+      S._bundleLoaded = false; S._profileLoaded = false; S.profile = null;
+      hideLoader();
+      go('dashboard');
+    } catch (e) {
+      hideLoader();
+      toast(e.message || 'Switch failed', 'error');
+    }
   }
 
   // ═══ ESCAPE HTML ═══
@@ -235,10 +275,12 @@ const App = (() => {
     const s = API.getSession();
     const name = s ? (s.display_name || s.display_label || '') : '';
     const initial = (name || '?').charAt(0).toUpperCase();
+    const multiStore = s && s.store_assignments && s.store_assignments.length > 1;
     return `<div class="topbar">
       <div class="hamburger" onclick="App.openSidebar()">☰</div>
       <div class="topbar-logo" onclick="App.go('dashboard')">SPG Home</div>
       <div class="topbar-right">
+        ${multiStore ? `<div class="topbar-icon" onclick="App.showStoreSwitcher()" title="Switch Store" style="font-size:11px;cursor:pointer">⇄ ${esc(s.store_id || '')}</div>` : ''}
         <div class="topbar-icon" onclick="App.hardRefresh()" title="Refresh">↻</div>
         <div class="topbar-user" onclick="App.showProfilePopup()" style="cursor:pointer">
           <div class="topbar-avatar">${esc(initial)}</div>
@@ -380,8 +422,11 @@ const App = (() => {
     if (hasHomePerm('admin')) {
       html += sdGroup('admin', '⚙', 'Admin',
         sdFlyItem('admin', 'accounts', 'Accounts') +
-        sdFlyItem('admin', 'permissions', 'Permissions') +
-        sdFlyItem('admin', 'tieraccess', 'Tier Access') +
+        sdFlyItem('admin', 'base-permissions', 'Base Permissions') +
+        sdFlyItem('admin', 'dept-overrides', 'Dept Overrides') +
+        sdFlyItem('admin', 'staff-assignments', 'Staff Assignments') +
+        sdFlyItem('admin', 'permissions', 'Permissions (Legacy)') +
+        sdFlyItem('admin', 'tieraccess', 'Tier Access (Legacy)') +
         sdFlyItem('admin', 'requests', 'Requests') +
         sdFlyItem('admin', 'home-settings', 'Home Settings')
       );
@@ -490,7 +535,7 @@ const App = (() => {
     let html = `<div class="mob-sidebar-header">
       <div class="topbar-avatar">${esc((s.display_name || s.display_label || '?').charAt(0).toUpperCase())}</div>
       <div><div style="font-size:12px;font-weight:600">${esc(s.display_name || s.display_label)}</div>
-      <div style="font-size:9px;color:var(--t3)">${esc(s.tier_id)} · ${esc(s.store_id || 'HQ')}</div></div>
+      <div style="font-size:9px;color:var(--t3)">${esc(s.position_id ? s.position_name : s.tier_id)} · ${esc(s.store_id || 'HQ')}</div></div>
     </div>`;
 
     html += mobItem('dashboard', '◇', 'Dashboard');
@@ -512,8 +557,11 @@ const App = (() => {
     if (hasHomePerm('admin')) {
       html += '<div style="height:8px"></div><div class="mob-sidebar-section">Admin</div>';
       html += mobNav('admin', 'accounts', '⚙', 'Accounts');
-      html += mobNav('admin', 'permissions', '⚙', 'Permissions');
-      html += mobNav('admin', 'tieraccess', '⚙', 'Tier Access');
+      html += mobNav('admin', 'base-permissions', '⚙', 'Base Permissions');
+      html += mobNav('admin', 'dept-overrides', '⚙', 'Dept Overrides');
+      html += mobNav('admin', 'staff-assignments', '⚙', 'Staff Assignments');
+      html += mobNav('admin', 'permissions', '⚙', 'Permissions (Legacy)');
+      html += mobNav('admin', 'tieraccess', '⚙', 'Tier Access (Legacy)');
       html += mobNav('admin', 'requests', '⚙', 'Requests');
       html += mobNav('admin', 'home-settings', '⚙', 'Home Settings');
       html += '<div style="height:8px"></div><div class="mob-sidebar-section">Master Data</div>';
@@ -613,7 +661,7 @@ const App = (() => {
 
   return {
     S, go, updateHash, toast, showLoader, hideLoader,
-    showDialog, closeDialog, showProfilePopup, esc,
+    showDialog, closeDialog, showProfilePopup, showStoreSwitcher, doSwitchStore, esc,
     topbar, shell, toolbar, showError, hideError,
     hardRefresh, hasHomePerm,
     sortData, sortTh, toggleSort, getSortState,

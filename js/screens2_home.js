@@ -14,7 +14,7 @@
 // ════════════════════════════════
 function renderAdmin(p) {
   const tab = p?.tab || 'accounts';
-  const titles = { accounts: 'Accounts', permissions: 'Permissions', tieraccess: 'Tier Access Overrides', requests: 'Registration Requests', 'home-settings': 'Home Settings' };
+  const titles = { accounts: 'Accounts', permissions: 'Permissions (Legacy)', tieraccess: 'Tier Access (Legacy)', requests: 'Registration Requests', 'home-settings': 'Home Settings', 'base-permissions': 'Base Permissions', 'dept-overrides': 'Dept Overrides', 'staff-assignments': 'Staff Assignments', 'individual-overrides': 'Individual Overrides' };
   const title = titles[tab] || 'Admin';
   const isSA = App.hasHomePerm('super_admin');
 
@@ -22,6 +22,7 @@ function renderAdmin(p) {
   if (tab === 'accounts') actions = `<button class="btn btn-primary btn-sm" onclick="App.go('acct-create')">+ Create Account</button>`;
   else if ((tab === 'permissions' || tab === 'tieraccess') && isSA) actions = `<button class="btn btn-primary btn-sm" onclick="Admin.saveAdminTab('${tab}')">Save Changes</button>`;
   else if (tab === 'home-settings' && isSA) actions = `<button class="btn btn-primary btn-sm" onclick="Admin.saveAdminTab('${tab}')">Save Changes</button>`;
+  else if (tab === 'base-permissions' && isSA) actions = `<button class="btn btn-primary btn-sm" onclick="Admin.saveAdminTab('${tab}')">Save Changes</button>`;
 
   const r = App.shell(`${App.toolbar(title, actions)}<div class="content"><div id="admin-content"><div class="skeleton" style="height:200px;margin-top:8px"></div></div></div>`);
   setTimeout(() => Admin.loadAdminTab(tab), 30);
